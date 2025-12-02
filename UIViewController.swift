@@ -308,7 +308,7 @@ private enum JobsAssocKey {
 
 extension UIViewController: JobsRouteComparable {
     @inline(__always)
-    func jobs_isSameDestination(as other: UIViewController) -> Bool {
+    public func jobs_isSameDestination(as other: UIViewController) -> Bool {
         type(of: self) == type(of: other)
     }
 }

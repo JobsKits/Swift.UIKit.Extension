@@ -26,8 +26,7 @@ public extension UICollectionViewCell {
             }
         } else {
             self.isSelected = selected
-        }
-        return self
+        };return self
     }
     /// 高亮状态（可选动画）
     @discardableResult
@@ -38,8 +37,7 @@ public extension UICollectionViewCell {
             }
         } else {
             self.isHighlighted = highlighted
-        }
-        return self
+        };return self
     }
     // MARK: - autoUpdate@Configuration (iOS 14+)
     /// iOS14+: 是否自动根据状态更新 contentConfiguration
@@ -130,8 +128,7 @@ public extension UICollectionViewCell {
             let v = UIView()
             v.backgroundColor = selected
             self.selectedBackgroundView = v
-        }
-        return self
+        };return self
     }
     // MARK: - invalidate@Configuration (iOS 14+)
     /// iOS14+: 请求按当前状态更新配置（系统会合并请求时机）

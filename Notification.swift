@@ -5,7 +5,13 @@
 //  Created by Mac on 9/26/25.
 //
 
-import Foundation
+#if os(OSX)
+    import AppKit
+#endif
+
+#if os(iOS) || os(tvOS)
+    import UIKit
+#endif
 /// 通知分类
 extension Notification.Name {
     /// 用户登陆

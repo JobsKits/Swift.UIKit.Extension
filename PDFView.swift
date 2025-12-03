@@ -2,8 +2,13 @@
 //  JobsSwiftBaseConfigDemo
 //  Created by Mac on 11/3/25.
 
+#if os(OSX)
+    import AppKit
+#endif
+
 #if os(iOS) || os(tvOS)
-import UIKit
+    import UIKit
+#endif
 import PDFKit
 
 public extension PDFView {
@@ -69,4 +74,3 @@ public extension PDFView {
         if let auto { autoScales = auto }; return self
     }
 }
-#endif

@@ -5,7 +5,13 @@
 //  Created by Mac on 11/11/25.
 //
 
-import UIKit
+#if os(OSX)
+    import AppKit
+#endif
+
+#if os(iOS) || os(tvOS)
+    import UIKit
+#endif
 // ================================== 示例 ==================================
 // cell.byListConfig {
 //     $0.byText("主标题")

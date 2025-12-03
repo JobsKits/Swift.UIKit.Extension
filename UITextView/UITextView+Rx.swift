@@ -29,8 +29,7 @@ public extension UITextView {
     var linkTap: Observable<URL> { rx.linkTap.asObservable() }
 }
 // MARK: - 全局关联 Key（用于 objc_setAssociatedObject）
-private var kProxyKey: UInt8 = 0
-private var kTapKey:  UInt8 = 0
+
 public extension Reactive where Base: UITextView {
     /// Rx 扩展：点击富文本链接触发 URL 事件
     var linkTap: ControlEvent<URL> {
@@ -101,7 +100,7 @@ public extension Reactive where Base: UITextView {
     /// 删除键（空文本也会触发）
     var didPressDelete: ControlEvent<Void> {
         let src = NotificationCenter.default.rx
-            .notification(UITextView.didPressDeleteNotification, object: base)
+            .notification(UITextView.didPressTextViewDeleteNotification, object: base)
             .map { _ in () }
         return ControlEvent(events: src)
     }

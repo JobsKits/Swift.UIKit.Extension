@@ -1,0 +1,39 @@
+//
+//  UITableView+校验.swift
+//  JobsSwiftBaseConfigDemo
+//
+//  Created by Jobs on 12/3/25.
+//
+
+#if os(OSX)
+    import AppKit
+#endif
+
+#if os(iOS) || os(tvOS)
+    import UIKit
+#endif
+
+import ObjectiveC
+
+extension UITableView {
+    /// 校验 IndexPath 是否在当前 tableView 的有效范围内
+    private func isValid(indexPath: IndexPath) -> Bool {
+        let section = indexPath.section
+        let row = indexPath.row
+
+        guard section >= 0, row >= 0 else { return false }
+        guard section < numberOfSections else { return false }
+        guard row < numberOfRows(inSection: section) else { return false }
+        return true
+    }
+    /// 通过 IndexPath 安全获取 cell：越界 / 不存在 返回 nil
+    subscript(safe indexPath: IndexPath) -> UITableViewCell? {
+        guard isValid(indexPath: indexPath) else { return nil }
+        return cellForRow(at: indexPath)
+    }
+    /// 通过 section / row 安全获取 cell：越界 / 不存在 返回 nil
+    subscript(section s: Int, row r: Int) -> UITableViewCell? {
+        let indexPath = IndexPath(row: r, section: s)
+        return self[safe: indexPath]
+    }
+}

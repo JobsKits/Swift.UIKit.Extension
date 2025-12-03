@@ -135,7 +135,6 @@ private extension UIView {
         layer.add(animation, forKey: "jobs.shimmer")
     }
 }
-
 // MARK: - 公共 API
 public extension UIView {
     /// 是否正在呼吸

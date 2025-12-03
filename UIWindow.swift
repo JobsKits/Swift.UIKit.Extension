@@ -5,7 +5,13 @@
 //  Created by Mac on 10/4/25.
 //
 
-import UIKit
+#if os(OSX)
+    import AppKit
+#endif
+
+#if os(iOS) || os(tvOS)
+    import UIKit
+#endif
 
 public extension UIWindow {
     /// 返回一个“保证非空”的 UIWindow

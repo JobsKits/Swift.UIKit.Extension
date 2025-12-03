@@ -16,24 +16,6 @@
 import RxSwift
 import RxCocoa
 import RxRelay
-
-public enum TwoWayInitial {
-    case fromRelay   // 默认：用 relay 覆盖 view
-    case fromView    // 用 view 的当前值覆盖 relay
-}
-// MARK: 🧱 组件模型（UITextView 版）
-public struct RxTextViewInput {
-    public let text: Observable<String?>
-    public let textOrEmpty: Observable<String>
-    public let trimmed: Observable<String>
-
-    public let isEditing: Observable<Bool>
-    public let didPressDelete: Observable<Void>
-    public let didChange: ControlEvent<Void> // 文本变化事件
-
-    public let isValid: Observable<Bool>
-    public let formattedBinder: Binder<String>
-}
 // MARK: - Rx 快捷桥接（去掉 .rx,给 UITextView 直接用）
 public extension UITextView {
     // MARK: 通用输入绑定：带格式化 / 校验 / 最大长度 / 去重
@@ -107,7 +89,6 @@ public extension UITextView {
         distinct: Bool = true,
         equals: ((String, String) -> Bool)? = nil   // 自定义去重比较（可选）
     ) -> TextInputStream {
-
         var stream = rx.text.orEmpty
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .map { [weak self] raw -> String in

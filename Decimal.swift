@@ -5,7 +5,13 @@
 //  Created by Mac on 10/16/25.
 //
 
-import Foundation
+#if os(OSX)
+    import AppKit
+#endif
+
+#if os(iOS) || os(tvOS)
+    import UIKit
+#endif
 /*
      let a = Decimal(string: "1.005")!
      print(a.rounded(scale: 2, mode: .plain))       // 1.01  四舍五入

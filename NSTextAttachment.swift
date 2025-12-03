@@ -5,7 +5,13 @@
 //  Created by Mac on 10/7/25.
 //
 
-import UIKit
+#if os(OSX)
+    import AppKit
+#endif
+
+#if os(iOS) || os(tvOS)
+    import UIKit
+#endif
 // ================================== NSTextAttachment 链式封装 ==================================
 public extension NSTextAttachment {
     // MARK: - 初始化（便捷）

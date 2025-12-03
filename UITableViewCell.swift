@@ -5,7 +5,13 @@
 //  Created by Mac on 10/23/25.
 //
 
-import UIKit
+#if os(OSX)
+    import AppKit
+#endif
+
+#if os(iOS) || os(tvOS)
+    import UIKit
+#endif
 
 #if canImport(JobsSwiftBaseTools)
 import JobsSwiftBaseTools

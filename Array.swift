@@ -5,7 +5,13 @@
 //  Created by Jobs on 11/19/25.
 //
 
-import UIKit
+#if os(OSX)
+    import AppKit
+#endif
+
+#if os(iOS) || os(tvOS)
+    import UIKit
+#endif
 import ObjectiveC
 
 extension Array {

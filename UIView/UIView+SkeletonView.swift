@@ -1,11 +1,19 @@
 //
-//  SkeletonView.swift
+//  UIView+SkeletonView.swift
 //  JobsSwiftBaseConfigDemo
 //
-//  Created by Mac on 11/12/25.
+//  Created by Jobs on 12/3/25.
 //
 
-import UIKit
+#if os(OSX)
+    import AppKit
+#endif
+
+#if os(iOS) || os(tvOS)
+    import UIKit
+#endif
+
+#if canImport(SkeletonView)
 import SkeletonView
 // MARK: - UIView · 基础属性与显隐
 public extension UIView {
@@ -133,3 +141,4 @@ public enum JobsSkeletonPulse {
         }
     }
 }
+#endif

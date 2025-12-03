@@ -5,7 +5,13 @@
 //  Created by Jobs on 11/28/25.
 //
 
-import UIKit
+#if os(OSX)
+    import AppKit
+#endif
+
+#if os(iOS) || os(tvOS)
+    import UIKit
+#endif
 
 extension CAShapeLayer {
     // MARK: - 基础属性

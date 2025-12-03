@@ -5,7 +5,13 @@
 //  Created by Mac on 9/26/25.
 //
 
-import UIKit
+#if os(OSX)
+    import AppKit
+#endif
+
+#if os(iOS) || os(tvOS)
+    import UIKit
+#endif
 import CoreGraphics
 /// 基础绘制
 extension UIImage {

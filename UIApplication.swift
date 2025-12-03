@@ -5,7 +5,13 @@
 //  Created by Mac on 9/30/25.
 //
 
-import UIKit
+#if os(OSX)
+    import AppKit
+#endif
+
+#if os(iOS) || os(tvOS)
+    import UIKit
+#endif
 /**
      // 取 keyWindow
      let win = UIApplication.jobsKeyWindow()

@@ -18,7 +18,6 @@ import RxCocoa
 import RxRelay
 // MARK: ⚙️ deleteBackward 广播（UITextView）
 public extension UITextView {
-    static let didPressDeleteNotification = Notification.Name("UITextView.didPressDelete")
     private static let _swizzleOnce: Void = {
         let cls: AnyClass = UITextView.self
         let originalSel = #selector(UITextView.deleteBackward)
@@ -36,12 +35,11 @@ public extension UITextView {
 
     @objc private func _jobs_swizzled_deleteBackward() {
         _jobs_swizzled_deleteBackward()
-        NotificationCenter.default.post(name: UITextView.didPressDeleteNotification, object: self)
+        NotificationCenter.default.post(name: UITextView.didPressTextViewDeleteNotification, object: self)
     }
 }
 
 public extension UITextView {
-    typealias TVOnBackspace = (_ tv: UITextView) -> Void
     /// 监听退格键：点语法 + 可选节流
     /// - Parameters:
     ///   - throttle: 可选节流间隔（例如 .milliseconds(120)），默认 nil 不节流

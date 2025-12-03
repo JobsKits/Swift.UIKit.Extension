@@ -3,7 +3,6 @@
 //  PlayYes
 //
 //  Created by yihui on 2023/6/22.
-//  扩展UIColor
 
 #if os(OSX)
     import AppKit

@@ -5,7 +5,13 @@
 //  Created by Mac on 10/8/25.
 //
 
-import UIKit
+#if os(OSX)
+    import AppKit
+#endif
+
+#if os(iOS) || os(tvOS)
+    import UIKit
+#endif
 
 @available(iOS 15.0, tvOS 15.0, *)
 public extension UIButton.Configuration {

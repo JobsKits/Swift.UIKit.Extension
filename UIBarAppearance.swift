@@ -5,7 +5,13 @@
 //  Created by Jobs on 11/28/25.
 //
 
-import UIKit
+#if os(OSX)
+    import AppKit
+#endif
+
+#if os(iOS) || os(tvOS)
+    import UIKit
+#endif
 
 public extension UIBarAppearance {
     // MARK: - 1. 背景预设 configureXXX

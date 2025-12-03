@@ -5,7 +5,13 @@
 //  Created by Mac on 10/4/25.
 //
 
-import Foundation
+#if os(OSX)
+    import AppKit
+#endif
+
+#if os(iOS) || os(tvOS)
+    import UIKit
+#endif
 // MARK: 基础类型
 public extension UserDefaults {
     // MARK: Bool

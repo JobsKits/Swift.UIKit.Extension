@@ -5,7 +5,13 @@
 //  Created by Mac on 10/2/25.
 //
 
-import UIKit
+#if os(OSX)
+    import AppKit
+#endif
+
+#if os(iOS) || os(tvOS)
+    import UIKit
+#endif
 
 public extension NSMutableAttributedString {
     // MARK: - 添加单个属性
@@ -15,8 +21,7 @@ public extension NSMutableAttributedString {
             self.addAttribute(name, value: value, range: range)
         } else {
             self.addAttribute(name, value: value, range: NSRange(location: 0, length: self.length))
-        }
-        return self
+        };return self
     }
     // MARK: - 添加多个属性
     @discardableResult

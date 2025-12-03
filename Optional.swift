@@ -5,8 +5,13 @@
 //  Created by Mac on 10/1/25.
 //
 
-import Foundation
-import UIKit
+#if os(OSX)
+    import AppKit
+#endif
+
+#if os(iOS) || os(tvOS)
+    import UIKit
+#endif
 import CoreGraphics
 #if canImport(JobsSwiftBaseDefines)
 import JobsSwiftBaseDefines

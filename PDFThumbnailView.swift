@@ -2,8 +2,13 @@
 //  JobsSwiftBaseConfigDemo
 //  Created by Mac on 11/3/25.
 
+#if os(OSX)
+    import AppKit
+#endif
+
 #if os(iOS) || os(tvOS)
-import UIKit
+    import UIKit
+#endif
 import PDFKit
 
 public extension PDFThumbnailView {
@@ -13,4 +18,3 @@ public extension PDFThumbnailView {
     @discardableResult func byBgColor(_ color: UIColor) -> Self { self.backgroundColor = color; return self }
     @discardableResult func byContentInset(_ inset: UIEdgeInsets) -> Self { if #available(iOS 11.0, *) { self.contentInset = inset }; return self }
 }
-#endif

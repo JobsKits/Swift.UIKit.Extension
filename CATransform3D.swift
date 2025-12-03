@@ -4,10 +4,15 @@
 //
 //  Created by Mac on 10/30/25.
 //
+#if os(OSX)
+    import AppKit
+#endif
 
+#if os(iOS) || os(tvOS)
+    import UIKit
+#endif
 import QuartzCore
 import CoreGraphics
-import UIKit
 // MARK: - DSL Entry
 public extension CATransform3D {
     /// 入口：返回 Identity 作为链式起点

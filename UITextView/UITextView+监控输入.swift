@@ -18,7 +18,6 @@ import RxCocoa
 import RxRelay
 /// 🎯 重点：UITextView.onChange（RAC 版本，挂在 UITextView 上）
 public extension UITextView {
-    typealias TVOnChange = (_ tv: UITextView, _ input: String, _ old: String, _ isDeleting: Bool) -> Void
     /// 监听文本变化（Rx 方案）
     /// - Parameters:
     ///   - emitDuringComposition: 是否在 IME 合成期（markedTextRange != nil）也回调，默认 false
@@ -56,17 +55,8 @@ public extension UITextView {
                 handler(tv, input, old, isDeleting)
             })
             .disposed(by: _tv_onChangeBag)
-
         return self
     }
-}
-// ===========================================================
-// 私有：AO & 工具
-// ===========================================================
-private enum JobsTVKeys {
-    static var onChangeBag: UInt8 = 0
-    static var linkTapProxy: UInt8 = 0
-    static var backspaceBag: UInt8 = 0
 }
 
 public extension UITextView {

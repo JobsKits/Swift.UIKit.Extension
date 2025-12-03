@@ -4,8 +4,13 @@
 //
 //  Created by Mac on 9/25/25.
 //
-import Foundation
-import UIKit
+#if os(OSX)
+    import AppKit
+#endif
+
+#if os(iOS) || os(tvOS)
+    import UIKit
+#endif
 // MARK: -设置通用字体（400 表示 Regular（普通），500 表示 Medium（中等））
 extension UIFont {
     public convenience init?(medium: CGFloat) {

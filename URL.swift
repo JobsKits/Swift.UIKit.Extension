@@ -5,8 +5,14 @@
 //  Created by Mac on 10/8/25.
 //
 
-import Foundation
-import UIKit
+#if os(OSX)
+    import AppKit
+#endif
+
+#if os(iOS) || os(tvOS)
+    import UIKit
+#endif
+
 #if canImport(Kingfisher)
 import Kingfisher
 #endif

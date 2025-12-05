@@ -11,9 +11,7 @@
 #if os(iOS) || os(tvOS)
     import UIKit
 #endif
-/// 封装在UIView层的✅确认和🚫取消回调
-public typealias JobsConfirmHandler = () -> Void
-public typealias JobsCancelHandler  = () -> Void
+
 private struct JobsConfirmKeys {
     static var confirm: UInt8 = 0
     static var cancel:  UInt8 = 0

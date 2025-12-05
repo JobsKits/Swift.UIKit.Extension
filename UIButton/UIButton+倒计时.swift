@@ -38,10 +38,6 @@ private var _timerModeKey:  UInt8 = 0
 private var _timerStateKey: UInt8 = 0
 private var _timerStateDidChangeKey: UInt8 = 0
 
-public typealias TimerStateChangeHandler = (_ button: UIButton,
-                                            _ oldState: TimerState,
-                                            _ newState: TimerState) -> Void
-
 public extension UIButton {
     var timer: JobsTimerProtocol? {
         get { objc_getAssociatedObject(self, &_timerCoreKey) as? JobsTimerProtocol }

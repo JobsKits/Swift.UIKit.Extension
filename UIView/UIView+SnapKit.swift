@@ -14,9 +14,7 @@
 // MARK: - SnapKit
 #if canImport(SnapKit)
 import SnapKit
-/// SnapKit 语法糖🍬
-// 存的就是这个类型
-public typealias JobsConstraintClosure = (_ make: ConstraintMaker) -> Void
+
 private enum _JobsAssocKeys {
     static var addClosureKey: UInt8 = 0
 }

@@ -23,10 +23,7 @@ import NSObject_Rx
 #if canImport(JobsSwiftBaseTools)
 import JobsSwiftBaseTools
 #endif
-/// 限长状态变化时的回调
-/// isLimited = true  : 进入“被限长”状态（尝试超出时被拦截）
-/// isLimited = false : 从“被限长”状态恢复（删到 maxLength 以下）
-public typealias JobsTFOnLimitChanged = (_ isLimited: Bool, _ textField: UITextField) -> Void
+
 public enum JobsTFKeys {
     static var limitBag = UInt8(0)                // 专用 DisposeBag
     static var textInputActive = UInt8(0)

@@ -16,11 +16,6 @@ import RxSwift
 import RxCocoa
 import RxRelay
 
-public typealias TVOnBackspace = (_ tv: UITextView) -> Void
-public typealias TVOnChange = (_ tv: UITextView,
-                               _ input: String,
-                               _ old: String,
-                               _ isDeleting: Bool) -> Void
 public enum JobsTVKeys {
     static var onChangeBag: UInt8 = 0
     static var linkTapProxy: UInt8 = 0

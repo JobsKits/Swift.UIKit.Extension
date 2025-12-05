@@ -26,8 +26,6 @@ public struct KFButtonLoadConfig {
 
     public init() {}
 }
-// 修正上面行的泛型标注（渲染器转义问题）
-public typealias KFCompleted = (Result<RetrieveImageResult, KingfisherError>) -> Void
 private enum _KFButtonAOKey { static var config: UInt8 = 0 }
 private var kfBgURLKey: UInt8 = 0
 public extension UIButton {

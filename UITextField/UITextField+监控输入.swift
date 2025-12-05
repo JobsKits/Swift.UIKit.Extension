@@ -16,10 +16,7 @@ import RxSwift
 import RxCocoa
 import NSObject_Rx
 // MARK: - 🔔 Block 监听（挂在 UITextField）
-public typealias UITextFieldOnChange = (_ tf: UITextField,
-                                        _ input: String,
-                                        _ oldText: String,
-                                        _ isDeleting: Bool) -> Void
+
 
 private extension UITextField {
     var _jobs_onChangeBlock: UITextFieldOnChange? {

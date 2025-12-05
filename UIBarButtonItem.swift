@@ -16,7 +16,6 @@
 import ObjectiveC
 // MARK: - 私有存储
 private var _barItemActionKey: UInt8 = 0
-public typealias BarItemHandler = (UIBarButtonItem) -> Void
 // MARK: - Block 事件 + 工厂 + 链式
 public extension UIBarButtonItem {
     // ========= 1) 事件：不用 #selector，iOS14+ 用 primaryAction，以下自动处理 =========

@@ -29,9 +29,9 @@ public extension UIView {
     struct JobsNavBarConfig {
         public var enabled: Bool = false
         public var style: JobsNavBar.Style = .init()
-        public var titleProvider: JobsNavBar.TitleProvider? = nil          // nil -> 隐藏标题；不设=由宿主决定
-        public var backButtonProvider: JobsNavBar.BackButtonProvider? = nil// nil -> 隐藏返回键
-        public var onBack: JobsNavBar.BackHandler? = nil                   // 未设置则由宿主兜底
+        public var titleProvider: TitleProvider? = nil          // nil -> 隐藏标题；不设=由宿主决定
+        public var backButtonProvider: BackButtonProvider? = nil// nil -> 隐藏返回键
+        public var onBack: BackHandler? = nil                   // 未设置则由宿主兜底
         public var layout: ((JobsNavBar, ConstraintMaker, UIView) -> Void)? = nil // 自定义布局
         public var backButtonLayout: ((JobsNavBar, UIButton, ConstraintMaker) -> Void)? = nil
         public init() {}
@@ -125,7 +125,7 @@ public extension UIView {
     }
     /// 自定义标题（返回 nil -> 隐藏；不设置则留给宿主绑定，例如绑定到 webView.title）
     @discardableResult
-    func byNavBarTitleProvider(_ p: @escaping JobsNavBar.TitleProvider) -> Self {
+    func byNavBarTitleProvider(_ p: @escaping TitleProvider) -> Self {
         var c = _jobsNavBarConfig
         c.titleProvider = p
         _jobsNavBarConfig = c
@@ -134,7 +134,7 @@ public extension UIView {
     }
     /// 自定义返回键（返回 nil -> 隐藏）
     @discardableResult
-    func byNavBarBackButtonProvider(_ p: @escaping JobsNavBar.BackButtonProvider) -> Self {
+    func byNavBarBackButtonProvider(_ p: @escaping BackButtonProvider) -> Self {
         var c = _jobsNavBarConfig
         c.backButtonProvider = p
         _jobsNavBarConfig = c
@@ -143,7 +143,7 @@ public extension UIView {
     }
     /// 自定义返回键@约束
     @discardableResult
-    func byNavBarBackButtonLayout(_ layout: @escaping JobsNavBar.BackButtonLayout) -> Self {
+    func byNavBarBackButtonLayout(_ layout: @escaping BackButtonLayout) -> Self {
         var c = _jobsNavBarConfig
         c.backButtonLayout = layout
         _jobsNavBarConfig = c
@@ -152,7 +152,7 @@ public extension UIView {
     }
     /// 返回行为（比如“优先 webView.goBack，否则 pop”）
     @discardableResult
-    func byNavBarOnBack(_ h: @escaping JobsNavBar.BackHandler) -> Self {
+    func byNavBarOnBack(_ h: @escaping BackHandler) -> Self {
         var c = _jobsNavBarConfig
         c.onBack = h
         _jobsNavBarConfig = c

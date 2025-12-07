@@ -422,7 +422,7 @@ public extension JobsFooterAnimator {
         return self
     }
 }
- MARK: - 轻量的“最近刷新时间”缓存，替代 ESRefreshDataManager（避免跨模块 internal 访问问题）
+// MARK: - 轻量的“最近刷新时间”缓存，替代 ESRefreshDataManager（避免跨模块 internal 访问问题）
 public enum JobsRefreshCache {
     private static let prefix = "jobs.refresh."
     private static let ud = UserDefaults.standard

@@ -5,19 +5,15 @@
 //  Created by Jobs on 12/3/25.
 //
 #if os(OSX)
-    import AppKit
-#endif
-
-#if os(iOS) || os(tvOS)
-    import UIKit
+import AppKit
+#elseif os(iOS) || os(tvOS)
+import UIKit
 #endif
 
 import RxSwift
 import RxCocoa
 import NSObject_Rx
 // MARK: - 🔔 Block 监听（挂在 UITextField）
-
-
 private extension UITextField {
     var _jobs_onChangeBlock: UITextFieldOnChange? {
         get { objc_getAssociatedObject(self, &JobsTFKeys.onChangeBlock) as? UITextFieldOnChange }

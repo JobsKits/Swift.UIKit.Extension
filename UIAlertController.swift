@@ -240,8 +240,7 @@ public extension UIAlertController {
                     previousText = currentText
                 })
                 .disposed(by: tf.disposeBag)
-        }
-        return self
+        };return self
     }
 }
 #endif
@@ -276,7 +275,7 @@ public extension UIAlertController {
     func byPresent(_ vc: UIViewController,
                    anchor: Anchor = .auto,
                    animated: Bool = true,
-                   completion: (() -> Void)? = nil) -> Self {
+                   completion: (jobsByVoidBlock)? = nil) -> Self {
 
         let isSheet: Bool = {
             switch vc.modalPresentationStyle {
@@ -402,8 +401,7 @@ public extension UIAlertController {
                     iv.layer.cornerRadius = card.layer.cornerRadius
                 }
             }
-        }
-        return self
+        };return self
     }
     /// KF：URL 为空则只装本地图；有 URL 时转场后淡入网络图
     @discardableResult
@@ -484,8 +482,7 @@ public extension UIAlertController {
                     if #available(iOS 13.0, *) { borderView.layer.cornerCurve = .continuous }
                 }
             }
-        }
-        return self
+        };return self
     }
 }
 // MARK: - 私有：找卡片 / 安装背景 / 视觉
@@ -514,8 +511,7 @@ public extension UIAlertController {
                 || name.contains("UIAlertControllerInterfaceAction")
         }) {
             return v
-        }
-        return nil
+        };return nil
     }
     /// 找到整张 Alert 的“卡片视图”
     /// 1) 明确命中私有类 `_UIAlertControllerView`
@@ -575,8 +571,7 @@ public extension UIAlertController {
         container.insertSubview(iv, at: 0)
         iv.snp.makeConstraints { make in
             make.edges.equalToSuperview()   // 只贴边，不加 <= 约束，避免卡片被“收缩”
-        }
-        return iv
+        };return iv
     }
 }
 // MARK: - 私有：同步安装“本地背景”
@@ -599,8 +594,7 @@ private extension UIAlertController {
                 iv.layoutIfNeeded()
             }
             did = true
-        }
-        return did
+        };return did
     }
 }
 // ================================== Shim & 工具 ==================================
@@ -657,8 +651,7 @@ public extension UIAlertController {
         while let v = p { if looksLikeBox(v) { return v }; p = v.superview }
         if let container = tf.superview?.superview {
             for v in container.subviews where v !== tf { if looksLikeBox(v) { return v } }
-        }
-        return nil
+        };return nil
     }
     /// 求两个视图的“最低公共祖先”(LCA)
     fileprivate func _lowestCommonAncestor(_ a: UIView, _ b: UIView) -> UIView? {
@@ -673,8 +666,7 @@ public extension UIAlertController {
         while let cur = p {
             if aSet.contains(ObjectIdentifier(cur)) { return cur }
             p = cur.superview
-        }
-        return nil
+        };return nil
     }
 }
 

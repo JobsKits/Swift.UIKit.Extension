@@ -6,17 +6,21 @@
 //
 
 #if os(OSX)
-    import AppKit
-#endif
-
-#if os(iOS) || os(tvOS)
-    import UIKit
+import AppKit
+#elseif os(iOS) || os(tvOS)
+import UIKit
 #endif
 
 extension UIPageViewController {
     @discardableResult
-    func byViewControllers(_ viewControllers: [UIViewController], direction: NavigationDirection, animated: Bool = true, completion: ((Bool) -> Void)? = nil) -> Self {
-        self.setViewControllers(viewControllers, direction: direction, animated: animated, completion: completion)
+    func byViewControllers(_ viewControllers: [UIViewController],
+                           direction: NavigationDirection,
+                           animated: Bool = true,
+                           completion: (jobsByBoolBlock)? = nil) -> Self {
+        self.setViewControllers(viewControllers,
+                                direction: direction,
+                                animated: animated,
+                                completion: completion)
         return self
     }
 
@@ -36,6 +40,8 @@ extension UIPageViewController {
     func byTransitionStyle(_ style: UIPageViewController.TransitionStyle,
                            navigationOrientation: UIPageViewController.NavigationOrientation,
                            options: [UIPageViewController.OptionsKey : Any]? = nil) -> Self {
-        return UIPageViewController(transitionStyle: style, navigationOrientation: navigationOrientation, options: options) as! Self
+        return UIPageViewController(transitionStyle: style,
+                                    navigationOrientation: navigationOrientation,
+                                    options: options) as! Self
     }
 }

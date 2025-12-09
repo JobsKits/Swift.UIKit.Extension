@@ -98,10 +98,12 @@ public extension UINavigationController {
         if animated, let top = self.topViewController,
            let dir = top._jobs_entryDirection, dir != .system {
             let tr = CATransition()
-            tr.type = .push
-            tr.subtype = dir._reverseCASubtype
-            tr.duration = top._jobs_entryDuration ?? 0.32
-            tr.timingFunction = CAMediaTimingFunction(name: top._jobs_entryTiming ?? .easeInEaseOut)
+                .byType(.push)
+                .bySubtype(dir._reverseCASubtype)
+                .byDuration(top._jobs_entryDuration ?? 0.32)
+                .byTimingFunction(
+                    CAMediaTimingFunction(name: top._jobs_entryTiming ?? .easeInEaseOut)
+                )
             self.view.layer.add(tr, forKey: "jobs.pop.\(dir._debugKey)")
             return _jobs_popViewController_swizzled(animated: false)
         };return _jobs_popViewController_swizzled(animated: animated)
@@ -115,10 +117,12 @@ public extension UINavigationController {
         if animated, let top = self.topViewController,
            let dir = top._jobs_entryDirection, dir != .system {
             let tr = CATransition()
-            tr.type = .push
-            tr.subtype = dir._reverseCASubtype
-            tr.duration = top._jobs_entryDuration ?? 0.32
-            tr.timingFunction = CAMediaTimingFunction(name: top._jobs_entryTiming ?? .easeInEaseOut)
+                .byType(.push)
+                .bySubtype(dir._reverseCASubtype)
+                .byDuration(top._jobs_entryDuration ?? 0.32)                 // 来自 CAMediaTiming DSL
+                .byTimingFunction(                                          // 来自 CAAnimation DSL
+                    CAMediaTimingFunction(name: top._jobs_entryTiming ?? .easeInEaseOut)
+                )
             self.view.layer.add(tr, forKey: "jobs.popTo.\(dir._debugKey)")
             return _jobs_popToViewController_swizzled(viewController, animated: false)
         };return _jobs_popToViewController_swizzled(viewController, animated: animated)
@@ -132,10 +136,12 @@ public extension UINavigationController {
         if animated, let top = self.topViewController,
            let dir = top._jobs_entryDirection, dir != .system {
             let tr = CATransition()
-            tr.type = .push
-            tr.subtype = dir._reverseCASubtype
-            tr.duration = top._jobs_entryDuration ?? 0.32
-            tr.timingFunction = CAMediaTimingFunction(name: top._jobs_entryTiming ?? .easeInEaseOut)
+                .byType(.push)
+                .bySubtype(dir._reverseCASubtype)
+                .byDuration(top._jobs_entryDuration ?? 0.32)
+                .byTimingFunction(
+                    CAMediaTimingFunction(name: top._jobs_entryTiming ?? .easeInEaseOut)
+                )
             self.view.layer.add(tr, forKey: "jobs.popRoot.\(dir._debugKey)")
             return _jobs_popToRootViewController_swizzled(animated: false)
         };return _jobs_popToRootViewController_swizzled(animated: animated)
@@ -214,7 +220,7 @@ public extension UIViewController {
     func byPresent(_ from: UIResponder?,
                    animated: Bool = true,
                    policy: JobsPresentPolicy = .ignoreIfBusy,
-                   completion: (() -> Void)? = nil) -> Self {
+                   jobsByVoidBlock: (jobsByVoidBlock)? = nil) -> Self {
         assert(Thread.isMainThread, "byPresent must be called on main thread")
         // 目标不能已挂载 / 正在展示
         guard self.parent == nil, self.presentingViewController == nil else {
@@ -244,8 +250,8 @@ public extension UIViewController {
         }
         // 系统 present；完成时触发一次（与 viewDidAppear 幂等）
         host.present(self, animated: animated) { [weak self] in
-            completion?()
-            self?.jobs_fireAppearCompletionIfNeeded(reason: "presentCompletion")
+            jobsByVoidBlock?()
+            self?.jobs_fireAppearJobsVoidBlockIfNeeded(reason: "presentJobsVoidBlock")
         };return self
     }
 }

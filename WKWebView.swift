@@ -5,11 +5,9 @@
 //  Created by Jobs on 2025/6/16.
 //
 #if os(OSX)
-    import AppKit
-#endif
-
-#if os(iOS) || os(tvOS)
-    import UIKit
+import AppKit
+#elseif os(iOS) || os(tvOS)
+import UIKit
 #endif
 
 import WebKit
@@ -72,7 +70,7 @@ public extension WKWebView {
     }
     /// 带回调（@Sendable 友好）
     func jobsEval(_ js: String,
-                  completion: (@MainActor @Sendable (Any?, Error?) -> Void)?) {
+                  completion: JobsByAnyErrMASendableBlock?) {
         if #available(iOS 15.0, *) {
             Task { @MainActor [weak self] in
                 guard let self else { return }

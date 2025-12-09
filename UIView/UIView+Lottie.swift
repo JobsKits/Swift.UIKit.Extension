@@ -5,11 +5,9 @@
 //  Created by Jobs on 12/3/25.
 //
 #if os(OSX)
-    import AppKit
-#endif
-
-#if os(iOS) || os(tvOS)
-    import UIKit
+import AppKit
+#elseif os(iOS) || os(tvOS)
+import UIKit
 #endif
 
 #if canImport(SnapKit) && canImport(Lottie)
@@ -105,7 +103,7 @@ public extension UIView {
     }
     // MARK: - UIView 层便捷控制（保持语义链式）
     @discardableResult
-    func lottiePlay(completion: ((Bool) -> Void)? = nil) -> Self {
+    func lottiePlay(completion: (jobsByBoolBlock)? = nil) -> Self {
         jobs_lottieView?.play(completion: completion)
         return self
     }

@@ -6,11 +6,9 @@
 //
 
 #if os(OSX)
-    import AppKit
-#endif
-
-#if os(iOS) || os(tvOS)
-    import UIKit
+import AppKit
+#elseif os(iOS) || os(tvOS)
+import UIKit
 #endif
 
 import ObjectiveC
@@ -21,7 +19,7 @@ public extension UIBarButtonItem {
     // ========= 1) 事件：不用 #selector，iOS14+ 用 primaryAction，以下自动处理 =========
     /// 绑定点击回调（替代 #selector）
     @discardableResult
-    func onTap(_ block: @escaping BarItemHandler) -> Self {
+    func onTap(_ block: @escaping jobsByBarBtnItemBlock) -> Self {
         if #available(iOS 14.0, *) {
             // iOS14+：优先使用 UIAction，不需要 target/action
             self.primaryAction = UIAction { [weak self] _ in
@@ -37,7 +35,7 @@ public extension UIBarButtonItem {
     }
 
     @objc private func _jobs_handleAction(_ sender: Any) {
-        if let block = objc_getAssociatedObject(self, &_barItemActionKey) as? BarItemHandler {
+        if let block = objc_getAssociatedObject(self, &_barItemActionKey) as? jobsByBarBtnItemBlock {
             block(self)
         }
     }

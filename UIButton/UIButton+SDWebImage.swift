@@ -134,7 +134,10 @@ public extension UIButton {
                 let finalImage = img ?? cfg.placeholder
                 // 如果是新下载（非缓存），做一次淡入；缓存命中则直接显示更干净
                 if cacheType == .none, let finalImage {
-                    UIView.transition(with: self, duration: 0.22, options: .transitionCrossDissolve, animations: {
+                    UIView.transition(with: self,
+                                      duration: 0.22,
+                                      options: .transitionCrossDissolve,
+                                      animations: {
                         self.jobsResetBtnBgImage(finalImage, for: state)
                     }, completion: nil)
                 } else {

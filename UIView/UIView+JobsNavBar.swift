@@ -5,11 +5,9 @@
 //  Created by Jobs on 12/3/25.
 //
 #if os(OSX)
-    import AppKit
-#endif
-
-#if os(iOS) || os(tvOS)
-    import UIKit
+import AppKit
+#elseif os(iOS) || os(tvOS)
+import UIKit
 #endif
 // MARK: - 回调协议：任何宿主视图（含 BaseWebView）都可感知 NavBar 显隐变化并自行调整内部布局
 @MainActor
@@ -29,9 +27,9 @@ public extension UIView {
     struct JobsNavBarConfig {
         public var enabled: Bool = false
         public var style: JobsNavBar.Style = .init()
-        public var titleProvider: TitleProvider? = nil          // nil -> 隐藏标题；不设=由宿主决定
+        public var titleProvider: JobsRetAttributedString? = nil          // nil -> 隐藏标题；不设=由宿主决定
         public var backButtonProvider: BackButtonProvider? = nil// nil -> 隐藏返回键
-        public var onBack: BackHandler? = nil                   // 未设置则由宿主兜底
+        public var onBack: jobsByVoidBlock? = nil                   // 未设置则由宿主兜底
         public var layout: ((JobsNavBar, ConstraintMaker, UIView) -> Void)? = nil // 自定义布局
         public var backButtonLayout: ((JobsNavBar, UIButton, ConstraintMaker) -> Void)? = nil
         public init() {}
@@ -125,7 +123,7 @@ public extension UIView {
     }
     /// 自定义标题（返回 nil -> 隐藏；不设置则留给宿主绑定，例如绑定到 webView.title）
     @discardableResult
-    func byNavBarTitleProvider(_ p: @escaping TitleProvider) -> Self {
+    func byNavBarTitleProvider(_ p: @escaping JobsRetAttributedString) -> Self {
         var c = _jobsNavBarConfig
         c.titleProvider = p
         _jobsNavBarConfig = c
@@ -152,7 +150,7 @@ public extension UIView {
     }
     /// 返回行为（比如“优先 webView.goBack，否则 pop”）
     @discardableResult
-    func byNavBarOnBack(_ h: @escaping BackHandler) -> Self {
+    func byNavBarOnBack(_ h: @escaping jobsByVoidBlock) -> Self {
         var c = _jobsNavBarConfig
         c.onBack = h
         _jobsNavBarConfig = c

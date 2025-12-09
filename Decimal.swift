@@ -6,11 +6,9 @@
 //
 
 #if os(OSX)
-    import AppKit
-#endif
-
-#if os(iOS) || os(tvOS)
-    import UIKit
+import AppKit
+#elseif os(iOS) || os(tvOS)
+import UIKit
 #endif
 /*
      let a = Decimal(string: "1.005")!
@@ -63,14 +61,13 @@ public extension Decimal {
                    usesGroupingSeparator: Bool = true,
                    locale: Locale = .current) -> String {
         let rounded = self.rounded(scale: scale, mode: mode)
-        let fmt = NumberFormatter()
-        fmt.locale = locale
-        fmt.numberStyle = .decimal
-        fmt.usesGroupingSeparator = usesGroupingSeparator
-        fmt.minimumFractionDigits = max(0, scale)
-        fmt.maximumFractionDigits = max(0, scale)
         // 直接用 NSDecimalNumber 包装以避免 Double 精度丢失
-        return fmt.string(from: rounded as NSDecimalNumber) ?? "\(rounded)"
+        return NumberFormatter()
+            .byLocale(locale)
+            .byNumberStyle(.decimal)
+            .byUsesGroupingSeparator(usesGroupingSeparator)
+            .byMinimumFractionDigits(max(0, scale))
+            .byMaximumFractionDigits(max(0, scale)).string(from: rounded as NSDecimalNumber) ?? "\(rounded)"
     }
     // MARK: - 内部：把自定义规则映射到 NSDecimalNumber.RoundingMode
     private static func _nsMode(for x: Decimal, rule: RoundingRule) -> NSDecimalNumber.RoundingMode {

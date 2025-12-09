@@ -6,11 +6,9 @@
 //
 
 #if os(OSX)
-    import AppKit
-#endif
-
-#if os(iOS) || os(tvOS)
-    import UIKit
+import AppKit
+#elseif os(iOS) || os(tvOS)
+import UIKit
 #endif
 // MARK: - 🍬语法糖@注册：UITableViewCell、HeaderFooterView、HeaderFooterView
 extension UITableView {

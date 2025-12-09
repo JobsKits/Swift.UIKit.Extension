@@ -6,11 +6,9 @@
 //
 
 #if os(OSX)
-    import AppKit
-#endif
-
-#if os(iOS) || os(tvOS)
-    import UIKit
+import AppKit
+#elseif os(iOS) || os(tvOS)
+import UIKit
 #endif
 
 public extension UIStackView {
@@ -103,7 +101,7 @@ public extension UIStackView {
     }
     // 语义化“清空重建”
     @discardableResult
-    func byResetArrangedSubviews(_ make: () -> [UIView]) -> Self {
+    func byResetArrangedSubviews(_ make: JobsRetViewsByVoidBlock) -> Self {
         self.arrangedSubviews.forEach { self.removeArrangedSubview($0); $0.removeFromSuperview() }
         make().forEach { self.addArrangedSubview($0) }
         return self

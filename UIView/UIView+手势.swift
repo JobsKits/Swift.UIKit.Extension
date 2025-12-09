@@ -5,11 +5,9 @@
 //  Created by Jobs on 12/3/25.
 //
 #if os(OSX)
-    import AppKit
-#endif
-
-#if os(iOS) || os(tvOS)
-    import UIKit
+import AppKit
+#elseif os(iOS) || os(tvOS)
+import UIKit
 #endif
 /**
  // MARK: - 点击 Tap
@@ -167,8 +165,8 @@ public extension UIView {
     }
     // MARK: - 手势通用闭包盒子
     private final class _GestureActionBox {
-        let action: (UIGestureRecognizer) -> Void
-        init(_ action: @escaping (UIGestureRecognizer) -> Void) { self.action = action }
+        let action: jobsByGRBlock
+        init(_ action: @escaping jobsByGRBlock) { self.action = action }
     }
     // MARK: - Tap（点击）
     /// 新接口：带 gesture；兼容链式配置
@@ -177,7 +175,7 @@ public extension UIView {
         taps: Int = 1,
         cancelsTouchesInView: Bool = true,
         requiresExclusiveTouchType: Bool = false,
-        _ action: @escaping (UIGestureRecognizer) -> Void
+        _ action: @escaping jobsByGRBlock
     ) -> Self {
         isUserInteractionEnabled = true
 
@@ -204,7 +202,7 @@ public extension UIView {
     }
     /// 旧接口：无参数（向下兼容）
     @discardableResult
-    func addTapAction(_ action: @escaping () -> Void) -> Self {
+    func addTapAction(_ action: @escaping jobsByVoidBlock) -> Self {
         addTapAction { _ in action() }
     }
     func removeTapAction() {
@@ -219,7 +217,7 @@ public extension UIView {
         minimumPressDuration: TimeInterval = 0.5,
         allowableMovement: CGFloat = 10,
         numberOfTouchesRequired: Int = 1,
-        _ action: @escaping (UIGestureRecognizer) -> Void
+        _ action: @escaping jobsByGRBlock
     ) -> Self {
         isUserInteractionEnabled = true
 
@@ -242,7 +240,7 @@ public extension UIView {
     }
     /// 旧接口兼容
     @discardableResult
-    func addLongPressAction(_ action: @escaping () -> Void) -> Self {
+    func addLongPressAction(_ action: @escaping jobsByVoidBlock) -> Self {
         addLongPressAction { _ in action() }
     }
     func removeLongPressAction() {
@@ -256,7 +254,7 @@ public extension UIView {
     func addPanAction(
         minimumNumberOfTouches: Int = 1,
         maximumNumberOfTouches: Int = Int.max,
-        _ action: @escaping (UIGestureRecognizer) -> Void
+        _ action: @escaping jobsByGRBlock
     ) -> Self {
         isUserInteractionEnabled = true
 
@@ -278,7 +276,7 @@ public extension UIView {
     }
     /// 旧接口兼容
     @discardableResult
-    func addPanAction(_ action: @escaping () -> Void) -> Self {
+    func addPanAction(_ action: @escaping jobsByVoidBlock) -> Self {
         addPanAction { _ in action() }
     }
     func removePanAction() {
@@ -292,7 +290,7 @@ public extension UIView {
     func addSwipeAction(
         direction: UISwipeGestureRecognizer.Direction = .right,
         numberOfTouchesRequired: Int = 1,
-        _ action: @escaping (UIGestureRecognizer) -> Void
+        _ action: @escaping jobsByGRBlock
     ) -> Self {
         isUserInteractionEnabled = true
 
@@ -314,7 +312,7 @@ public extension UIView {
     }
     /// 旧接口兼容
     @discardableResult
-    func addSwipeAction(_ action: @escaping () -> Void) -> Self {
+    func addSwipeAction(_ action: @escaping jobsByVoidBlock) -> Self {
         addSwipeAction { _ in action() }
     }
     func removeSwipeAction() {
@@ -325,7 +323,7 @@ public extension UIView {
     }
     // MARK: - Pinch（捏合缩放）
     @discardableResult
-    func addPinchAction(_ action: @escaping (UIGestureRecognizer) -> Void) -> Self {
+    func addPinchAction(_ action: @escaping jobsByGRBlock) -> Self {
         isUserInteractionEnabled = true
 
         if let old = objc_getAssociatedObject(self, &GestureKeys.pinchKey) as? UIPinchGestureRecognizer {
@@ -345,7 +343,7 @@ public extension UIView {
     }
     /// 旧接口兼容
     @discardableResult
-    func addPinchAction(_ action: @escaping () -> Void) -> Self {
+    func addPinchAction(_ action: @escaping jobsByVoidBlock) -> Self {
         addPinchAction { _ in action() }
     }
     func removePinchAction() {
@@ -356,7 +354,7 @@ public extension UIView {
     }
     // MARK: - Rotation（旋转）
     @discardableResult
-    func addRotationAction(_ action: @escaping (UIGestureRecognizer) -> Void) -> Self {
+    func addRotationAction(_ action: @escaping jobsByGRBlock) -> Self {
         isUserInteractionEnabled = true
 
         if let old = objc_getAssociatedObject(self, &GestureKeys.rotateKey) as? UIRotationGestureRecognizer {
@@ -375,7 +373,7 @@ public extension UIView {
     }
     /// 旧接口兼容
     @discardableResult
-    func addRotationAction(_ action: @escaping () -> Void) -> Self {
+    func addRotationAction(_ action: @escaping jobsByVoidBlock) -> Self {
         addRotationAction { _ in action() }
     }
     @objc private func _gestureHandleRotate(_ sender: UIRotationGestureRecognizer) {
@@ -439,7 +437,7 @@ public extension UIView {
         taps: Int = 1,
         cancelsTouchesInView: Bool = true,
         requiresExclusiveTouchType: Bool = false,
-        _ action: @escaping (UIGestureRecognizer) -> Void
+        _ action: @escaping jobsByGRBlock
     ) -> String {
         isUserInteractionEnabled = true
 
@@ -472,7 +470,7 @@ public extension UIView {
         taps: Int = 1,
         cancelsTouchesInView: Bool = true,
         requiresExclusiveTouchType: Bool = false,
-        _ action: @escaping (UIGestureRecognizer) -> Void
+        _ action: @escaping jobsByGRBlock
     ) -> Self {
         _ = addTapActionMulti(id: id, taps: taps, cancelsTouchesInView: cancelsTouchesInView, requiresExclusiveTouchType: requiresExclusiveTouchType, action)
         return self
@@ -499,7 +497,7 @@ public extension UIView {
         minimumPressDuration: TimeInterval = 0.5,
         allowableMovement: CGFloat = 10,
         numberOfTouchesRequired: Int = 1,
-        _ action: @escaping (UIGestureRecognizer) -> Void
+        _ action: @escaping jobsByGRBlock
     ) -> String {
         isUserInteractionEnabled = true
 
@@ -526,7 +524,7 @@ public extension UIView {
         minimumPressDuration: TimeInterval = 0.5,
         allowableMovement: CGFloat = 10,
         numberOfTouchesRequired: Int = 1,
-        _ action: @escaping (UIGestureRecognizer) -> Void
+        _ action: @escaping jobsByGRBlock
     ) -> Self {
         _ = addLongPressActionMulti(id: id,
                                     minimumPressDuration: minimumPressDuration,
@@ -553,7 +551,7 @@ public extension UIView {
         id: String = UUID().uuidString,
         minimumNumberOfTouches: Int = 1,
         maximumNumberOfTouches: Int = Int.max,
-        _ action: @escaping (UIGestureRecognizer) -> Void
+        _ action: @escaping jobsByGRBlock
     ) -> String {
         isUserInteractionEnabled = true
 
@@ -578,7 +576,7 @@ public extension UIView {
         use id: String,
         minimumNumberOfTouches: Int = 1,
         maximumNumberOfTouches: Int = Int.max,
-        _ action: @escaping (UIGestureRecognizer) -> Void
+        _ action: @escaping jobsByGRBlock
     ) -> Self {
         _ = addPanActionMulti(id: id,
                               minimumNumberOfTouches: minimumNumberOfTouches,
@@ -604,7 +602,7 @@ public extension UIView {
         id: String = UUID().uuidString,
         direction: UISwipeGestureRecognizer.Direction = .right,
         numberOfTouchesRequired: Int = 1,
-        _ action: @escaping (UIGestureRecognizer) -> Void
+        _ action: @escaping jobsByGRBlock
     ) -> String {
         isUserInteractionEnabled = true
 
@@ -629,7 +627,7 @@ public extension UIView {
         use id: String,
         direction: UISwipeGestureRecognizer.Direction = .right,
         numberOfTouchesRequired: Int = 1,
-        _ action: @escaping (UIGestureRecognizer) -> Void
+        _ action: @escaping jobsByGRBlock
     ) -> Self {
         _ = addSwipeActionMulti(id: id, direction: direction, numberOfTouchesRequired: numberOfTouchesRequired, action)
         return self
@@ -650,7 +648,7 @@ public extension UIView {
     @discardableResult
     func addPinchActionMulti(
         id: String = UUID().uuidString,
-        _ action: @escaping (UIGestureRecognizer) -> Void
+        _ action: @escaping jobsByGRBlock
     ) -> String {
         isUserInteractionEnabled = true
 
@@ -670,7 +668,7 @@ public extension UIView {
         return id
     }
     @discardableResult
-    func addPinchActionMulti(use id: String, _ action: @escaping (UIGestureRecognizer) -> Void) -> Self {
+    func addPinchActionMulti(use id: String, _ action: @escaping jobsByGRBlock) -> Self {
         _ = addPinchActionMulti(id: id, action)
         return self
     }
@@ -690,7 +688,7 @@ public extension UIView {
     @discardableResult
     func addRotationActionMulti(
         id: String = UUID().uuidString,
-        _ action: @escaping (UIGestureRecognizer) -> Void
+        _ action: @escaping jobsByGRBlock
     ) -> String {
         isUserInteractionEnabled = true
 
@@ -706,7 +704,7 @@ public extension UIView {
         return id
     }
     @discardableResult
-    func addRotationActionMulti(use id: String, _ action: @escaping (UIGestureRecognizer) -> Void) -> Self {
+    func addRotationActionMulti(use id: String, _ action: @escaping jobsByGRBlock) -> Self {
         _ = addRotationActionMulti(id: id, action)
         return self
     }

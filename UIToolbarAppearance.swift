@@ -6,11 +6,9 @@
 //
 
 #if os(OSX)
-    import AppKit
-#endif
-
-#if os(iOS) || os(tvOS)
-    import UIKit
+import AppKit
+#elseif os(iOS) || os(tvOS)
+import UIKit
 #endif
 
 @available(iOS 13.0, *)
@@ -35,13 +33,13 @@ public extension UIToolbarAppearance {
     }
     // MARK: - Button appearances
     @discardableResult
-    func byButtonAppearance(_ config: (UIBarButtonItemAppearance) -> Void) -> Self {
+    func byButtonAppearance(_ config: jobsByBarButtonItemAppearanceBlock) -> Self {
         config(self.buttonAppearance)
         return self
     }
 
     @discardableResult
-    func byDoneButtonAppearance(_ config: (UIBarButtonItemAppearance) -> Void) -> Self {
+    func byDoneButtonAppearance(_ config: jobsByBarButtonItemAppearanceBlock) -> Self {
         config(self.doneButtonAppearance)
         return self
     }

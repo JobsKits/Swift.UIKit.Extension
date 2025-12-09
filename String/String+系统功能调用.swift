@@ -5,11 +5,9 @@
 //  Created by Jobs on 12/3/25.
 //
 #if os(OSX)
-    import AppKit
-#endif
-
-#if os(iOS) || os(tvOS)
-    import UIKit
+import AppKit
+#elseif os(iOS) || os(tvOS)
+import UIKit
 #endif
 
 import MessageUI
@@ -20,7 +18,7 @@ public extension String {
     // 内部委托：托管 MFMailComposeViewController 的回调与收尾
     fileprivate final class _JobsMailProxy: NSObject, @MainActor MFMailComposeViewControllerDelegate {
         static let shared = _JobsMailProxy()
-        var completion: ((JobsOpenResult) -> Void)?
+        var completion: jobsByOpenResultBlock?
 
         @MainActor func mailComposeController(_ controller: MFMailComposeViewController,
                                    didFinishWith result: MFMailComposeResult,
@@ -39,20 +37,20 @@ public extension String {
     /// 返回结果仅表示“是否成功调起系统打开”，并不保证目标 App 内部行为成功
     @discardableResult
     func open(options: [UIApplication.OpenExternalURLOptionsKey: Any] = [:],
-              completion: ((JobsOpenResult) -> Void)? = nil) -> JobsOpenResult {
+              jobsByVoidBlock: jobsByOpenResultBlock? = nil) -> JobsOpenResult {
         // 1) 预处理：去空白 + 尝试补 scheme + 百分号编码
         guard let url = Self.makeURL(from: self) else {
-            completion?(.invalidInput)
+            jobsByVoidBlock?(.invalidInput)
             return .invalidInput
         }
         // 2) canOpenURL（系统判断是否能调起）
         guard UIApplication.shared.canOpenURL(url) else {
-            completion?(.cannotOpen)
+            jobsByVoidBlock?(.cannotOpen)
             return .cannotOpen
         }
-        // 3) iOS 10+ 统一走 open(_:options:completionHandler:)
+        // 3) iOS 10+ 统一走 open(_:options:JobsVoidBlockHandler:)
         UIApplication.shared.open(url, options: options) { ok in
-            completion?(ok ? .opened : .cannotOpen)
+            jobsByVoidBlock?(ok ? .opened : .cannotOpen)
         };return .opened
     }
     /// 一行拨号
@@ -65,37 +63,36 @@ public extension String {
     /// - 模拟器不支持拨号；真机的家长控制/MDM 也可能拦截。
     @discardableResult
     func call(usePrompt: Bool = false,
-              completion: ((JobsOpenResult) -> Void)? = nil) -> JobsOpenResult {
-
+              jobsByVoidBlock: (jobsByOpenResultBlock)? = nil) -> JobsOpenResult {
         #if targetEnvironment(simulator)
         // ================== 模拟器环境直接拦截 ==================
         print("📵 模拟器不支持拨号功能")
         Task { @MainActor in
             print("📵 模拟器不支持拨号功能")
         }
-        completion?(.cannotOpen)
+        jobsByVoidBlock?(.cannotOpen)
         return .cannotOpen
         #else
         // ================== 真机执行逻辑 ==================
         // 1) 规整号码：仅保留数字与前导 '+'（其余全剔除）
         let sanitized = Self.sanitizePhone(self)
         guard !sanitized.isEmpty else {
-            completion?(.invalidInput)
+            jobsByVoidBlock?(.invalidInput)
             return .invalidInput
         }
         // 2) 生成 tel / telprompt URL
         let scheme = usePrompt ? "telprompt://" : "tel://"
         guard let url = URL(string: scheme + sanitized) else {
-            completion?(.invalidInput)
+            jobsByVoidBlock?(.invalidInput)
             return .invalidInput
         }
         // 3) canOpenURL
         guard UIApplication.shared.canOpenURL(url) else {
-            completion?(.cannotOpen)
+            jobsByVoidBlock?(.cannotOpen)
             return .cannotOpen
         }
         UIApplication.shared.open(url, options: [:]) { ok in
-            completion?(ok ? .opened : .cannotOpen)
+            jobsByVoidBlock?(ok ? .opened : .cannotOpen)
         }
         return .opened
         #endif
@@ -118,7 +115,7 @@ public extension String {
               cc: [String] = [],
               bcc: [String] = [],
               presentFrom: UIViewController? = nil,
-              completion: ((JobsOpenResult) -> Void)? = nil) -> JobsOpenResult {
+              completion: (jobsByOpenResultBlock)? = nil) -> JobsOpenResult {
 
         let tos = Self._parseEmails(self)
         guard !tos.isEmpty else {

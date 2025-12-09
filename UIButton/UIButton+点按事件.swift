@@ -48,9 +48,9 @@ private final class _JobsButtonLongPressSleeve: NSObject {
 // MARK: - 内部工具
 private extension UIButton {
     // 点击：存一组 block，方便「覆盖」和「叠加」
-    var jobsTapBlocks: [JobsButtonTapBlock] {
+    var jobsTapBlocks: [jobsByBtnBlock] {
         get {
-            objc_getAssociatedObject(self, &JobsUIButtonAssociatedKeys.tapBlocks) as? [JobsButtonTapBlock] ?? []
+            objc_getAssociatedObject(self, &JobsUIButtonAssociatedKeys.tapBlocks) as? [jobsByBtnBlock] ?? []
         }
         set {
             objc_setAssociatedObject(
@@ -194,7 +194,7 @@ public extension UIButton {
     }
     /// 点击方法@叠加
     @discardableResult
-    func onTapAppend(_ handler: @escaping JobsButtonTapBlock) -> Self {
+    func onTapAppend(_ handler: @escaping jobsByBtnBlock) -> Self {
         var blocks = jobsTapBlocks
         blocks.append(handler)             // 叠加
         jobsTapBlocks = blocks

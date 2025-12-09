@@ -12,13 +12,12 @@ import AppKit
 #if os(iOS) || os(tvOS)
 import UIKit
 #endif
-
 // ================================== 数据传递 + 出现完成回调 ==================================
 private enum JobsAssocKey {
     static var inputData: UInt8 = 0
     static var onResult: UInt8 = 1
-    static var onAppearCompletions: UInt8 = 2
-    static var appearCompletionFired: UInt8 = 3
+    static var onAppearJobsVoidBlocks: UInt8 = 2
+    static var appearJobsVoidBlockFired: UInt8 = 3
 }
 
 extension UIViewController: JobsRouteComparable {
@@ -58,26 +57,26 @@ public extension UIViewController {
     }
     // ✅ 出现完成（push/present 结束）的一次性回调
     @discardableResult
-    func byCompletion(_ block: @escaping () -> Void) -> Self {
+    func byJobsVoidBlock(_ block: @escaping jobsByVoidBlock) -> Self {
         UIViewController._JobsAppearSwizzler.installIfNeeded()
-        var arr = (objc_getAssociatedObject(self, &JobsAssocKey.onAppearCompletions) as? [() -> Void]) ?? []
+        var arr = (objc_getAssociatedObject(self, &JobsAssocKey.onAppearJobsVoidBlocks) as? [jobsByVoidBlock]) ?? []
         arr.append(block)
-        objc_setAssociatedObject(self, &JobsAssocKey.onAppearCompletions, arr, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        objc_setAssociatedObject(self, &JobsAssocKey.onAppearJobsVoidBlocks, arr, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         // 若已在窗口（先跳转后注册），下一轮主线程立即触发
         if self.viewIfLoaded?.window != nil {
-            DispatchQueue.main.async { [weak self] in self?.jobs_fireAppearCompletionIfNeeded(reason: "alreadyVisible") }
+            DispatchQueue.main.async { [weak self] in self?.jobs_fireAppearJobsVoidBlockIfNeeded(reason: "alreadyVisible") }
         };return self
     }
 
-    func jobs_fireAppearCompletionIfNeeded(reason: String) {
-        let fired = (objc_getAssociatedObject(self, &JobsAssocKey.appearCompletionFired) as? Bool) ?? false
+    func jobs_fireAppearJobsVoidBlockIfNeeded(reason: String) {
+        let fired = (objc_getAssociatedObject(self, &JobsAssocKey.appearJobsVoidBlockFired) as? Bool) ?? false
         guard !fired else { return }
-        guard let blocks = objc_getAssociatedObject(self, &JobsAssocKey.onAppearCompletions) as? [() -> Void],
+        guard let blocks = objc_getAssociatedObject(self, &JobsAssocKey.onAppearJobsVoidBlocks) as? [jobsByVoidBlock],
               !blocks.isEmpty else { return }
-        objc_setAssociatedObject(self, &JobsAssocKey.appearCompletionFired, true, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
-        objc_setAssociatedObject(self, &JobsAssocKey.onAppearCompletions, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        objc_setAssociatedObject(self, &JobsAssocKey.appearJobsVoidBlockFired, true, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        objc_setAssociatedObject(self, &JobsAssocKey.onAppearJobsVoidBlocks, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         blocks.forEach { $0() }
-        // print("✅ [JobsAppearCompletion] fired by \(reason) for \(self)")
+        // print("✅ [JobsAppearJobsVoidBlock] fired by \(reason) for \(self)")
     }
 }
 // `viewDidAppear` swizzle：出现完成时机
@@ -98,7 +97,7 @@ private extension UIViewController {
 
     @objc func jobs_viewDidAppear_swizzled(_ animated: Bool) {
         self.jobs_viewDidAppear_swizzled(animated) // 原实现
-        self.jobs_fireAppearCompletionIfNeeded(reason: "viewDidAppear")
+        self.jobs_fireAppearJobsVoidBlockIfNeeded(reason: "viewDidAppear")
     }
 }
 // MARK: - 给“实现了 JobsDataReceivable 的 VC”提供强类型重载：编译期直达 receive(_:)

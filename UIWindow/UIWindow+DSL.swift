@@ -5,11 +5,9 @@
 //  Created by Jobs on 12/3/25.
 //
 #if os(OSX)
-    import AppKit
-#endif
-
-#if os(iOS) || os(tvOS)
-    import UIKit
+import AppKit
+#elseif os(iOS) || os(tvOS)
+import UIKit
 #endif
 public extension UIWindow {
     // MARK: - 构造 / 附着
@@ -80,7 +78,7 @@ public extension UIWindow {
     @discardableResult
     func presentOnTop(_ vc: UIViewController,
                       animated: Bool = true,
-                      completion: (() -> Void)? = nil) -> Self {
+                      completion: (jobsByVoidBlock)? = nil) -> Self {
         guard let host = UIWindow.jobsTopMost(from: self.rootViewController) else { return self }
         // 宿主正在转场就别叠
         if host.transitionCoordinator != nil { return self }
@@ -91,13 +89,17 @@ public extension UIWindow {
     }
     // MARK: - 坐标转换（链式味道）
     @discardableResult
-    func byConvert(_ point: CGPoint, to other: UIWindow?, sink: (CGPoint) -> Void) -> Self {
+    func byConvert(_ point: CGPoint,
+                   to other: UIWindow?,
+                   sink: jobsByPointBlock) -> Self {
         sink(convert(point, to: other))
         return self
     }
 
     @discardableResult
-    func byConvert(_ rect: CGRect, to other: UIWindow?, sink: (CGRect) -> Void) -> Self {
+    func byConvert(_ rect: CGRect,
+                   to other: UIWindow?,
+                   sink: jobsByFrameBlock) -> Self {
         sink(convert(rect, to: other))
         return self
     }

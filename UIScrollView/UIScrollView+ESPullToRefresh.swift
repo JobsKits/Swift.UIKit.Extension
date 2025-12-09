@@ -5,11 +5,9 @@
 //  Created by Jobs on 12/6/25.
 //
 #if os(OSX)
-    import AppKit
-#endif
-
-#if os(iOS) || os(tvOS)
-    import UIKit
+import AppKit
+#elseif os(iOS) || os(tvOS)
+import UIKit
 #endif
 
 #if canImport(ESPullToRefresh) && canImport(SnapKit)
@@ -20,7 +18,7 @@ public extension UIScrollView {
     // MARK: - 下拉刷新（Pull Down）
     /// 安装下拉刷新（默认 ESRefreshHeaderAnimator）
     @discardableResult
-    func pullDown(_ action: @escaping () -> Void,
+    func pullDown(_ action: @escaping jobsByVoidBlock,
                   config: ((ESRefreshHeaderAnimator) -> Void)? = nil) -> Self {
         if self.header == nil {
             let animator = ESRefreshHeaderAnimator()
@@ -35,7 +33,7 @@ public extension UIScrollView {
     }
     /// 安装下拉刷新（JobsHeaderAnimator 自定义样式）
     @discardableResult
-    func pullDownWithJobsAnimator(_ action: @escaping () -> Void,
+    func pullDownWithJobsAnimator(_ action: @escaping jobsByVoidBlock,
                                   config: ((JobsHeaderAnimator) -> Void)? = nil) -> Self {
         if self.header == nil {
             let animator = JobsHeaderAnimator()
@@ -80,7 +78,7 @@ public extension UIScrollView {
     // MARK: - 上拉加载（Pull Up）
     /// 安装上拉加载（默认 ESRefreshFooterAnimator）
     @discardableResult
-    func pullUp(_ action: @escaping () -> Void,
+    func pullUp(_ action: @escaping jobsByVoidBlock,
                 config: ((ESRefreshFooterAnimator) -> Void)? = nil) -> Self {
         if self.footer == nil {
             let animator = ESRefreshFooterAnimator()
@@ -100,7 +98,7 @@ public extension UIScrollView {
     }
     /// 安装上拉加载（JobsFooterAnimator 自定义样式）
     @discardableResult
-    func pullUpWithJobsAnimator(_ action: @escaping () -> Void,
+    func pullUpWithJobsAnimator(_ action: @escaping jobsByVoidBlock,
                                 config: ((JobsFooterAnimator) -> Void)? = nil) -> Self {
         if self.footer == nil {
             let animator = JobsFooterAnimator()

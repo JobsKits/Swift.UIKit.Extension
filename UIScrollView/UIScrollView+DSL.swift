@@ -6,11 +6,9 @@
 //
 
 #if os(OSX)
-    import AppKit
-#endif
-
-#if os(iOS) || os(tvOS)
-    import UIKit
+import AppKit
+#elseif os(iOS) || os(tvOS)
+import UIKit
 #endif
 
 extension UIScrollView {
@@ -204,7 +202,7 @@ extension UIScrollView {
     /// iOS 17.4+ 滚动 offset 变化时强制显示滚动条
     @available(iOS 17.4, *)
     @discardableResult
-    func byWithScrollIndicatorsShownForContentOffsetChanges(_ changes: () -> Void) -> Self {
+    func byWithScrollIndicatorsShownForContentOffsetChanges(_ changes: jobsByVoidBlock) -> Self {
         self.withScrollIndicatorsShown(forContentOffsetChanges: changes)
         return self
     }

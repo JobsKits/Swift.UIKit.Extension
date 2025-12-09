@@ -6,11 +6,9 @@
 //
 
 #if os(OSX)
-    import AppKit
-#endif
-
-#if os(iOS) || os(tvOS)
-    import UIKit
+import AppKit
+#elseif os(iOS) || os(tvOS)
+import UIKit
 #endif
 
 import RxSwift
@@ -29,7 +27,6 @@ public extension UITextView {
     var linkTap: Observable<URL> { rx.linkTap.asObservable() }
 }
 // MARK: - 全局关联 Key（用于 objc_setAssociatedObject）
-
 public extension Reactive where Base: UITextView {
     /// Rx 扩展：点击富文本链接触发 URL 事件
     var linkTap: ControlEvent<URL> {
@@ -141,8 +138,7 @@ public extension Reactive where Base: UITextView {
             if let f = formatter { s = f(s) }
             if let m = maxLength, s.count > m {
                 s = String(s.unicodeScalars.prefix(m).map(Character.init))
-            }
-            return s
+            };return s
         }
 
         textOrEmpty

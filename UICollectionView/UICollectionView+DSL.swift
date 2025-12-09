@@ -5,11 +5,9 @@
 //  Created by Jobs on 12/3/25.
 //
 #if os(OSX)
-    import AppKit
-#endif
-
-#if os(iOS) || os(tvOS)
-    import UIKit
+import AppKit
+#elseif os(iOS) || os(tvOS)
+import UIKit
 #endif
 /// 选择、编辑、焦点@UICollectionView
 extension UICollectionView {
@@ -127,8 +125,10 @@ extension UICollectionView {
     @discardableResult
     public func bySetLayout(_ layout: UICollectionViewLayout,
                             animated: Bool,
-                            completion: ((Bool) -> Void)?) -> Self {
-        setCollectionViewLayout(layout, animated: animated, completion: completion)
+                            completion: (jobsByBoolBlock)?) -> Self {
+        setCollectionViewLayout(layout,
+                                animated: animated,
+                                completion: completion)
         return self
     }
 }
@@ -219,8 +219,8 @@ extension UICollectionView {
     }
 
     @discardableResult
-    public func byPerformBatchUpdates(_ updates: (() -> Void)?,
-                                      completion: ((Bool) -> Void)? = nil) -> Self {
+    public func byPerformBatchUpdates(_ updates: (jobsByVoidBlock)?,
+                                      completion: (jobsByBoolBlock)? = nil) -> Self {
         performBatchUpdates(updates, completion: completion)
         return self
     }

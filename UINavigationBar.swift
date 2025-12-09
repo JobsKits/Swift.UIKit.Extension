@@ -6,11 +6,9 @@
 //
 
 #if os(OSX)
-    import AppKit
-#endif
-
-#if os(iOS) || os(tvOS)
-    import UIKit
+import AppKit
+#elseif os(iOS) || os(tvOS)
+import UIKit
 #endif
 
 public extension UINavigationBar {
@@ -150,7 +148,7 @@ public extension UINavigationBar {
     // ================================== Appearance（iOS13+） ==================================
     /// 配置 standardAppearance@闭包版
     @discardableResult
-    func byStandardAppearance(_ builder: (UINavigationBarAppearance) -> Void) -> Self {
+    func byStandardAppearance(_ builder: jobsByNavigationBarAppearanceBlock) -> Self {
         if #available(iOS 13.0, *) {
             let appearance = standardAppearance          // @NSCopying：这里拿到的是 copy
             builder(appearance)
@@ -166,7 +164,7 @@ public extension UINavigationBar {
     }
     /// 配置 compactAppearance@闭包版（紧凑高度）
     @discardableResult
-    func byCompactAppearance(_ builder: (UINavigationBarAppearance) -> Void) -> Self {
+    func byCompactAppearance(_ builder: jobsByNavigationBarAppearanceBlock) -> Self {
         if #available(iOS 13.0, *) {
             let appearance = compactAppearance ?? standardAppearance
             builder(appearance)
@@ -182,7 +180,7 @@ public extension UINavigationBar {
     }
     /// 配置 scrollEdgeAppearance@闭包版（滚动到边缘时）
     @discardableResult
-    func byScrollEdgeAppearance(_ builder: (UINavigationBarAppearance) -> Void) -> Self {
+    func byScrollEdgeAppearance(_ builder: jobsByNavigationBarAppearanceBlock) -> Self {
         if #available(iOS 13.0, *) {
             let appearance = scrollEdgeAppearance ?? standardAppearance
             builder(appearance)
@@ -198,7 +196,7 @@ public extension UINavigationBar {
     }
     /// 配置 compactScrollEdgeAppearance@闭包版（紧凑 + 滚动到边缘）
     @discardableResult
-    func byCompactScrollEdgeAppearance(_ builder: (UINavigationBarAppearance) -> Void) -> Self {
+    func byCompactScrollEdgeAppearance(_ builder: jobsByNavigationBarAppearanceBlock) -> Self {
         if #available(iOS 15.0, *) {
             let appearance = compactScrollEdgeAppearance
                 ?? scrollEdgeAppearance
@@ -217,7 +215,7 @@ public extension UINavigationBar {
     }
     /// 一次把同一个appearance套到所有状态@闭包版（常用）
     @discardableResult
-    func byUnifiedAppearance(_ builder: (UINavigationBarAppearance) -> Void) -> Self {
+    func byUnifiedAppearance(_ builder: jobsByNavigationBarAppearanceBlock) -> Self {
         if #available(iOS 13.0, *) {
             let appearance = standardAppearance
             builder(appearance)

@@ -5,11 +5,9 @@
 //  Created by Jobs on 12/3/25.
 //
 #if os(OSX)
-    import AppKit
-#endif
-
-#if os(iOS) || os(tvOS)
-    import UIKit
+import AppKit
+#elseif os(iOS) || os(tvOS)
+import UIKit
 #endif
 // MARK: 字符串相关格式的（通用）转换
 extension String {
@@ -32,20 +30,17 @@ extension String {
     /// String 转 Double
     public func toDouble() -> Double? {
         let formatter = NumberFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")  // 固定使用 . 作为小数点
-        formatter.numberStyle = .decimal
-
-        // 设置逗号为千位分隔符，点号为小数点
-        formatter.groupingSeparator = ","
-        formatter.decimalSeparator = "."
-
+            .byLocale(Locale(identifier: "en_US_POSIX")) // 固定使用 . 作为小数点
+            .byNumberStyle(.decimal)
+            .byGroupingSeparator(",")                   // 千分位逗号
+            .byDecimalSeparator(".")                    // 小数点 .
         return formatter.number(from: self.trimmingCharacters(in: .whitespacesAndNewlines))?.doubleValue
     }
     /// String 转 Double
     public func toDouble(_ max:Int,_ min:Int) -> Double? {
-        let format = NumberFormatter.init()
-        format.maximumFractionDigits = max
-        format.minimumFractionDigits = min
+        let format = NumberFormatter()
+            .byMaximumFractionDigits(max)
+            .byMinimumFractionDigits(min)
         if let num = format.number(from: self) {
             return num.doubleValue
         } else {

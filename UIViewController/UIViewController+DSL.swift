@@ -42,7 +42,7 @@ public extension UIViewController {
     @discardableResult
     func byPresent(_ viewController: UIViewController,
                    animated: Bool = false,
-                   completion: (() -> Void)? = nil) -> Self {
+                   jobsByVoidBlock: (jobsByVoidBlock)? = nil) -> Self {
         // 强力护栏：禁止 present 已挂载 / 正在展示 / 自己
         guard viewController !== self else {
             assertionFailure("❌ Don't present self on self")
@@ -57,14 +57,14 @@ public extension UIViewController {
             assertionFailure("❌ Host not in window or being dismissed: \(self)")
             return self
         }
-        self.present(viewController, animated: animated, completion: completion)
+        self.present(viewController, animated: animated, jobsByVoidBlock: jobsByVoidBlock)
         return self
     }
     */
     /// 统一语义化 dismiss
     @discardableResult
     func byDismiss(animated: Bool = true,
-                   completion: (() -> Void)? = nil) -> Self {
+                   completion: (jobsByVoidBlock)? = nil) -> Self {
         self.dismiss(animated: animated, completion: completion)
         return self
     }
@@ -160,7 +160,7 @@ public extension UIViewController {
     @discardableResult
     func addChildVC(_ child: UIViewController,
                     into container: UIView? = nil,
-                    layout: ((UIView) -> Void)? = nil) -> Self {
+                    layout: (jobsByViewBlock)? = nil) -> Self {
         self.addChild(child)
         if viewIfLoaded == nil { loadViewIfNeeded() }
         let host = container ?? self.view!

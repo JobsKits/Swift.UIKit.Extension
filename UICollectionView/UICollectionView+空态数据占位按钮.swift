@@ -5,11 +5,9 @@
 //  Created by Jobs on 12/3/25.
 //
 #if os(OSX)
-    import AppKit
-#endif
-
-#if os(iOS) || os(tvOS)
-    import UIKit
+import AppKit
+#elseif os(iOS) || os(tvOS)
+import UIKit
 #endif
 // MARK: - UICollectionView@空数据源占位图
 /// 被交换的方法实现（调用原方法后自动评估空态）
@@ -24,8 +22,8 @@ extension UICollectionView {
     }
 
     @objc dynamic func jobs_swizzled_performBatchUpdates(
-        _ updates: (() -> Void)?,
-        completion: ((Bool) -> Void)?
+        _ updates: (jobsByVoidBlock)?,
+        completion: (jobsByBOOLBlock)?
     ) {
         jobs_swizzled_performBatchUpdates(updates) { [weak self] finished in
             DispatchQueue.main.async { [weak self] in

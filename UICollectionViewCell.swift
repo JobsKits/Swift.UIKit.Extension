@@ -6,11 +6,9 @@
 //
 
 #if os(OSX)
-    import AppKit
-#endif
-
-#if os(iOS) || os(tvOS)
-    import UIKit
+import AppKit
+#elseif os(iOS) || os(tvOS)
+import UIKit
 #endif
 import ObjectiveC
 
@@ -21,7 +19,9 @@ public extension UICollectionViewCell {
     func bySelected(_ selected: Bool, animated: Bool = false) -> Self {
         // 没有 setSelected(_:animated:) 接口，直接赋值 + 可选动画过渡
         if animated {
-            UIView.transition(with: contentView, duration: 0.2, options: .transitionCrossDissolve) {
+            UIView.transition(with: contentView,
+                              duration: 0.2,
+                              options: .transitionCrossDissolve) {
                 self.isSelected = selected
             }
         } else {
@@ -32,7 +32,9 @@ public extension UICollectionViewCell {
     @discardableResult
     func byHighlighted(_ highlighted: Bool, animated: Bool = false) -> Self {
         if animated {
-            UIView.transition(with: contentView, duration: 0.15, options: .transitionCrossDissolve) {
+            UIView.transition(with: contentView,
+                              duration: 0.15,
+                              options: .transitionCrossDissolve) {
                 self.isHighlighted = highlighted
             }
         } else {
@@ -71,7 +73,7 @@ public extension UICollectionViewCell {
     /// iOS14+: 背景配置（UIBackgroundConfiguration）
     @available(iOS 14.0, *)
     @discardableResult
-    func byBackgroundConfiguration(_ build: (inout UIBackgroundConfiguration) -> Void,
+    func byBackgroundConfiguration(_ build: jobsByInoutBackgroundConfigurationBlock,
                                    automaticallyUpdates: Bool = false) -> Self {
         var bg = UIBackgroundConfiguration.listPlainCell()
         build(&bg)
@@ -107,7 +109,7 @@ public extension UICollectionViewCell {
     func byListContent(text: String? = nil,
                        secondaryText: String? = nil,
                        image: UIImage? = nil,
-                       config: ((inout UIListContentConfiguration) -> Void)? = nil) -> Self {
+                       config: (jobsByInoutListContentConfigBlock)? = nil) -> Self {
         return byContentConfiguration { cfg in
             cfg.text = text
             cfg.secondaryText = secondaryText
@@ -118,7 +120,8 @@ public extension UICollectionViewCell {
     /// iOS14+: 快捷设置背景色（普通 & 选中）
     @available(iOS 14.0, *)
     @discardableResult
-    func byListBackground(normal: UIColor? = nil, selected: UIColor? = nil) -> Self {
+    func byListBackground(normal: UIColor? = nil,
+                          selected: UIColor? = nil) -> Self {
         if let normal {
             _ = byBackgroundConfiguration { bg in
                 bg.backgroundColor = normal

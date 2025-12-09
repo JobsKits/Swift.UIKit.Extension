@@ -5,11 +5,9 @@
 //  Created by Mac on 10/30/25.
 //
 #if os(OSX)
-    import AppKit
-#endif
-
-#if os(iOS) || os(tvOS)
-    import UIKit
+import AppKit
+#elseif os(iOS) || os(tvOS)
+import UIKit
 #endif
 import QuartzCore
 import CoreGraphics

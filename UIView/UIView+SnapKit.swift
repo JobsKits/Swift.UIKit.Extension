@@ -5,11 +5,9 @@
 //  Created by Jobs on 12/3/25.
 //
 #if os(OSX)
-    import AppKit
-#endif
-
-#if os(iOS) || os(tvOS)
-    import UIKit
+import AppKit
+#elseif os(iOS) || os(tvOS)
+import UIKit
 #endif
 // MARK: - SnapKit
 #if canImport(SnapKit)
@@ -19,9 +17,9 @@ private enum _JobsAssocKeys {
     static var addClosureKey: UInt8 = 0
 }
 public extension UIView {
-    var jobsAddConstraintsClosure: JobsConstraintClosure? {
+    var jobsAddConstraintsClosure: jobsByConstraintMakerBlock? {
         get {
-            objc_getAssociatedObject(self, &_JobsAssocKeys.addClosureKey) as? JobsConstraintClosure
+            objc_getAssociatedObject(self, &_JobsAssocKeys.addClosureKey) as? jobsByConstraintMakerBlock
         }
         set {
             // 闭包推荐 COPY 语义

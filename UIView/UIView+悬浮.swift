@@ -5,11 +5,9 @@
 //  Created by Jobs on 12/3/25.
 //
 #if os(OSX)
-    import AppKit
-#endif
-
-#if os(iOS) || os(tvOS)
-    import UIKit
+import AppKit
+#elseif os(iOS) || os(tvOS)
+import UIKit
 #endif
 // MARK: - 给任意 UIView 增加悬浮能力（可拖拽、吸附、尊重安全区），默认挂在活动窗口。
 // 风格：链式 DSL（.suspend / .bySuspend），主线程 API 使用 @MainActor 保障。
@@ -255,7 +253,9 @@ private extension UIView {
             let mode = _effectiveDocking(cfg)
             let target = _snapOrigin(for: mode, in: container, cfg: cfg, currentFrame: frame)
             if cfg.animated {
-                UIView.animate(withDuration: 0.25, delay: 0, options: [.curveEaseOut]) {
+                UIView.animate(withDuration: 0.25,
+                               delay: 0,
+                               options: [.curveEaseOut]) {
                     self.frame.origin = target
                 } completion: { _ in
                     if cfg.hapticOnDock {

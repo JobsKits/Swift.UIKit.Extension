@@ -6,11 +6,9 @@
 //
 
 #if os(OSX)
-    import AppKit
-#endif
-
-#if os(iOS) || os(tvOS)
-    import UIKit
+import AppKit
+#elseif os(iOS) || os(tvOS)
+import UIKit
 #endif
 /// Sequence 协议就是 Swift 里“一串可以被遍历的东西”的最底层抽象，所有 for ... in、map、filter 这类操作，都是建立在它上面。
 /// 告诉编译器：我这玩意儿可以一个一个把元素吐出来

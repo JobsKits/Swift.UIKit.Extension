@@ -5,11 +5,9 @@
 //  Created by yihui on 2023/6/22.
 
 #if os(OSX)
-    import AppKit
-#endif
-
-#if os(iOS) || os(tvOS)
-    import UIKit
+import AppKit
+#elseif os(iOS) || os(tvOS)
+import UIKit
 #endif
 
 extension UIColor {

@@ -170,7 +170,7 @@ public extension UIButton {
                         as? (UIButton, JobsTimerKind) -> Void {
                         fin(self, k)
                     }
-                    if let legacyFin = objc_getAssociatedObject(self, &_legacyCountdownFinishKey) as? () -> Void {
+                    if let legacyFin = objc_getAssociatedObject(self, &_legacyCountdownFinishKey) as? jobsByVoidBlock {
                         legacyFin()
                     }
                     self.stopTimer()
@@ -258,7 +258,7 @@ public extension UIButton {
                let fin = objc_getAssociatedObject(self, &_timerFinishAnyKey) as? (UIButton, JobsTimerKind) -> Void {
                 fin(self, k)
             }
-            if let legacyFin = objc_getAssociatedObject(self, &_legacyCountdownFinishKey) as? () -> Void {
+            if let legacyFin = objc_getAssociatedObject(self, &_legacyCountdownFinishKey) as? jobsByVoidBlock {
                 legacyFin()
             }
         };return stopTimer()
@@ -274,7 +274,7 @@ public extension UIButton {
     }
 
     @discardableResult
-    func onJobsCountdownFinish(_ block: @escaping () -> Void) -> Self {
+    func onJobsCountdownFinish(_ block: @escaping jobsByVoidBlock) -> Self {
         objc_setAssociatedObject(self,
                                  &_legacyCountdownFinishKey,
                                  block,

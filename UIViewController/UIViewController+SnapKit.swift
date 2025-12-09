@@ -37,7 +37,7 @@ public extension UIViewController {
         contentMode: UIView.ContentMode = .scaleAspectFill,
         backgroundColor: UIColor? = nil,
         remakeConstraints: Bool = true,
-        layout: ((ConstraintMaker) -> Void)? = nil
+        layout: (jobsByConstraintMakerBlock)? = nil
     ) -> UIImageView {
         let holder = container ?? view
         let iv = jobsImageView

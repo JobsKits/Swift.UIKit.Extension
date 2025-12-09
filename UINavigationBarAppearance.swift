@@ -6,11 +6,9 @@
 //
 
 #if os(OSX)
-    import AppKit
-#endif
-
-#if os(iOS) || os(tvOS)
-    import UIKit
+import AppKit
+#elseif os(iOS) || os(tvOS)
+import UIKit
 #endif
 
 public extension UINavigationBarAppearance {
@@ -115,26 +113,26 @@ public extension UINavigationBarAppearance {
     // ================================== 按钮外观 ==================================
     /// 配置普通按钮外观
     @discardableResult
-    func byButtonAppearance(_ builder: (UIBarButtonItemAppearance) -> Void) -> Self {
+    func byButtonAppearance(_ builder: jobsByBarButtonItemAppearanceBlock) -> Self {
         builder(buttonAppearance)
         return self
     }
     /// 配置「突出」按钮外观（UIBarButtonItemStyleProminent）
     @discardableResult
-    func byProminentButtonAppearance(_ builder: (UIBarButtonItemAppearance) -> Void) -> Self {
+    func byProminentButtonAppearance(_ builder: jobsByBarButtonItemAppearanceBlock) -> Self {
         builder(prominentButtonAppearance)
         return self
     }
     /// 配置返回按钮外观
     @discardableResult
-    func byBackButtonAppearance(_ builder: (UIBarButtonItemAppearance) -> Void) -> Self {
+    func byBackButtonAppearance(_ builder: jobsByBarButtonItemAppearanceBlock) -> Self {
         builder(backButtonAppearance)
         return self
     }
     /// 配置 done 按钮外观（13.0~25.x）
     @discardableResult
     @available(iOS, introduced: 13.0, deprecated: 26.0)
-    func byDoneButtonAppearance(_ builder: (UIBarButtonItemAppearance) -> Void) -> Self {
+    func byDoneButtonAppearance(_ builder: jobsByBarButtonItemAppearanceBlock) -> Self {
         builder(doneButtonAppearance)
         return self
     }

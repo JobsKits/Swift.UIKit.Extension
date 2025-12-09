@@ -5,11 +5,9 @@
 //  Created by Mac on 10/20/25.
 //
 #if os(OSX)
-    import AppKit
-#endif
-
-#if os(iOS) || os(tvOS)
-    import UIKit
+import AppKit
+#elseif os(iOS) || os(tvOS)
+import UIKit
 #endif
 
 import WebKit
@@ -17,7 +15,7 @@ import WebKit
 @MainActor
 public extension WKWebViewConfiguration {
     // MARK: - 工厂
-    static func make(_ configure: (inout WKWebViewConfiguration) -> Void) -> WKWebViewConfiguration {
+    static func make(_ configure: jobsByInoutWKWebConfigBlock) -> WKWebViewConfiguration {
         var ct = WKWebViewConfiguration()
         configure(&ct)
         return ct

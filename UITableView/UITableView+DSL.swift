@@ -6,11 +6,9 @@
 //
 
 #if os(OSX)
-    import AppKit
-#endif
-
-#if os(iOS) || os(tvOS)
-    import UIKit
+import AppKit
+#elseif os(iOS) || os(tvOS)
+import UIKit
 #endif
 // MARK: - 🍬语法糖@数据源和代理
 extension UITableView {
@@ -324,7 +322,7 @@ extension UITableView {
     /// iOS 11.0+
     @available(iOS 11.0, *)
     @discardableResult
-    public func byPerformBatchUpdates(_ updates: (() -> Void)?, completion: ((Bool) -> Void)? = nil) -> Self {
+    public func byPerformBatchUpdates(_ updates: (jobsByVoidBlock)?, completion: (jobsByBOOLBlock)? = nil) -> Self {
         self.performBatchUpdates(updates, completion: completion)
         return self
     }
@@ -455,7 +453,7 @@ extension UITableView {
     // MARK: - iOS 14.0+ 配置 contextMenuInteraction（只读属性，提供配置闭包）
     @available(iOS 14.0, *)
     @discardableResult
-    public func byContextMenuInteraction(_ config: (UIContextMenuInteraction) -> Void) -> Self {
+    public func byContextMenuInteraction(_ config: jobsByContextMenuInteractionBlock) -> Self {
         if let interaction = self.contextMenuInteraction {
             config(interaction)
         };return self

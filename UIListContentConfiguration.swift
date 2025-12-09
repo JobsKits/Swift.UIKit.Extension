@@ -6,11 +6,9 @@
 //
 
 #if os(OSX)
-    import AppKit
-#endif
-
-#if os(iOS) || os(tvOS)
-    import UIKit
+import AppKit
+#elseif os(iOS) || os(tvOS)
+import UIKit
 #endif
 // ================================== 示例 ==================================
 // cell.byListConfig {
@@ -37,7 +35,7 @@
 @available(watchOS, unavailable)
 public extension UIListContentConfiguration {
     // MARK: - 小工具
-    private func jobs_mutating(_ body: (inout UIListContentConfiguration) -> Void) -> UIListContentConfiguration {
+    private func jobs_mutating(_ body: jobsByInoutListContentConfigBlock) -> UIListContentConfiguration {
         var copy = self
         body(&copy)
         return copy
@@ -134,12 +132,14 @@ public extension UIListContentConfiguration {
     func byDirectionalLayoutMargins(_ edges: NSDirectionalEdgeInsets) -> Self {
         jobs_mutating { $0.directionalLayoutMargins = edges }
     }
-
     /// 便捷：用 `UIEdgeInsets` 适配成 Directional
     @discardableResult
     func byLayoutMargins(_ edges: UIEdgeInsets) -> Self {
         jobs_mutating {
-            $0.directionalLayoutMargins = .init(top: edges.top, leading: edges.left, bottom: edges.bottom, trailing: edges.right)
+            $0.directionalLayoutMargins = .init(top: edges.top,
+                                                leading: edges.left,
+                                                bottom: edges.bottom,
+                                                trailing: edges.right)
         }
     }
 
@@ -168,7 +168,6 @@ public extension UIListContentConfiguration {
     func byAlpha(_ value: CGFloat) -> Self {
         jobs_mutating { $0.alpha = value }
     }
-
     // ================================== 文本属性 · 主文案 ==================================
     @discardableResult
     func byTextFont(_ font: UIFont) -> Self {
@@ -261,13 +260,11 @@ public extension UIListContentConfiguration {
     func bySecondaryTransform(_ transform: UIListContentConfiguration.TextProperties.TextTransform) -> Self {
         jobs_mutating { $0.secondaryTextProperties.transform = transform }
     }
-
     // ================================== 图片属性 ==================================
     @discardableResult
     func byPreferredSymbolConfiguration(_ cfg: UIImage.SymbolConfiguration?) -> Self {
         jobs_mutating { $0.imageProperties.preferredSymbolConfiguration = cfg }
     }
-
     /// 便捷：直接传入 pointSize / weight / scale 生成 `preferredSymbolConfiguration`
     @discardableResult
     func byPreferredSymbol(pointSize: CGFloat? = nil,
@@ -303,7 +300,6 @@ public extension UIListContentConfiguration {
     func byImageMaximumSize(_ size: CGSize) -> Self {
         jobs_mutating { $0.imageProperties.maximumSize = size }
     }
-
     /// 为图片预留布局尺寸（即使无图也占位）
     @discardableResult
     func byImageReservedLayoutSize(_ size: CGSize) -> Self {
@@ -332,7 +328,6 @@ public extension UIListContentConfiguration {
     func byImageStrokeWidth(_ width: CGFloat) -> Self {
         jobs_mutating { $0.imageProperties.strokeWidth = width }
     }
-
     // ================================== 状态更新 / ContentView ==================================
     /// 对任意 `UIConfigurationState` 做增量更新（一般配合 `UICellConfigurationState` 使用）
     @discardableResult
@@ -346,13 +341,12 @@ public extension UIListContentConfiguration {
         self.makeContentView()
     }
 }
-
 // ================================== Cell 侧便捷接入 ==================================
 @available(iOS 14.0, tvOS 14.0, *)
 public extension UITableViewCell {
     /// 以链式闭包方式配置并设置 `contentConfiguration`
     @discardableResult
-    func byListConfig(_ builder: (UIListContentConfiguration) -> UIListContentConfiguration) -> Self {
+    func byListConfig(_ builder: JobsRetByListContentConfigBlock) -> Self {
         let base = (contentConfiguration as? UIListContentConfiguration) ?? .cell()
         contentConfiguration = builder(base)
         return self
@@ -363,7 +357,7 @@ public extension UITableViewCell {
 public extension UICollectionViewListCell {
     /// 以链式闭包方式配置并设置 `contentConfiguration`
     @discardableResult
-    func byListConfig(_ builder: (UIListContentConfiguration) -> UIListContentConfiguration) -> Self {
+    func byListConfig(_ builder: JobsRetByListContentConfigBlock) -> Self {
         let base = (contentConfiguration as? UIListContentConfiguration) ?? .cell()
         contentConfiguration = builder(base)
         return self

@@ -5,11 +5,9 @@
 //  Created by Jobs on 12/3/25.
 //
 #if os(OSX)
-    import AppKit
-#endif
-
-#if os(iOS) || os(tvOS)
-    import UIKit
+import AppKit
+#elseif os(iOS) || os(tvOS)
+import UIKit
 #endif
 // MARK: 动画@旋转
 private var _spinKey: UInt8 = 0   // 动画是否已装
@@ -29,12 +27,12 @@ public extension UIView {
         // 已有就别重复装
         if layer.animation(forKey: "jobs.spin") == nil {
             let a = CABasicAnimation(keyPath: "transform.rotation.z")
-            a.fromValue = 0
-            a.toValue = Double.pi * 2
-            a.duration = 1.0 / max(0.001, revPerSec)   // 一秒转 revPerSec 圈
-            a.repeatCount = .infinity
-            a.isRemovedOnCompletion = false
-            a.fillMode = .forwards
+                .byFromValue(0)
+                .byToValue(Double.pi * 2)
+                .byDuration(1.0 / max(0.001, revPerSec))   // 一秒转 revPerSec 圈
+                .byRepeatCount(.infinity)
+                .byRemovedOnCompletion(false)
+                .byFillMode(.forwards)
             layer.add(a, forKey: "jobs.spin")
         }
         // 确保运行态
@@ -118,10 +116,10 @@ public extension UIView {
 extension UIView {
     func shake(duration: CFTimeInterval = 0.5, repeatCount: Float = 1) {
         let animation = CAKeyframeAnimation(keyPath: "transform.translation.x")
-        animation.timingFunction = CAMediaTimingFunction(name: .linear)
-        animation.duration = duration
-        animation.values = [-10, 10, -8, 8, -5, 5, 0] // 左右偏移
-        animation.repeatCount = repeatCount
+            .byTimingFunction(CAMediaTimingFunction(name: .linear))
+            .byDuration(duration)
+            .byValues([-10, 10, -8, 8, -5, 5, 0])   // 左右偏移
+            .byRepeatCount(repeatCount)             // 注意 repeatCount 是 Float
         self.layer.add(animation, forKey: "shake")
     }
 }

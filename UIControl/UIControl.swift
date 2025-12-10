@@ -13,6 +13,12 @@ import UIKit
 
 public final class _JobsClosureWrapper: NSObject {
     private let closure: jobsByVoidBlock
-    init(_ closure: @escaping jobsByVoidBlock) { self.closure = closure }
-    @objc func invoke() { closure() }
+
+    init(_ closure: @escaping jobsByVoidBlock) {
+        self.closure = closure
+    }
+
+    @objc func invoke() {
+        closure()
+    }
 }

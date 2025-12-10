@@ -9,7 +9,7 @@ import AppKit
 #elseif os(iOS) || os(tvOS)
 import UIKit
 #endif
-
+//let cell = collectionView[section: 0, item: 3]
 extension UICollectionView {
     /// 校验 IndexPath 是否在当前 collectionView 的有效范围内
     private func isValid(indexPath: IndexPath) -> Bool {

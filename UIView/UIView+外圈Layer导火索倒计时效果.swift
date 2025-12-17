@@ -237,3 +237,85 @@ public extension UIView {
         jobs_fuseLayer = nil
     }
 }
+// MARK: - ✅ 正计时（Progress）支持：准备一圈 + 按 progress 更新
+public extension UIView {
+
+    /// 准备外圈（progress 初始为 0）
+    /// - 注意：这里不做 CABasicAnimation，只是把 layer/path/样式准备好
+    func jobs_prepareFuseProgress(config: JobsFuseConfig = JobsFuseConfig()) {
+        layoutIfNeeded()
+        guard bounds.width > 0, bounds.height > 0 else { return }
+
+        // 停掉倒计时动画，但保留 layer
+        jobs_cancelFuseCountdown(removeLayer: false)
+
+        jobs_fuseConfig = config
+
+        // 拿到 / 创建 Layer（复用你倒计时那套思路）
+        let fuseLayer: CAShapeLayer
+        if let existing = jobs_fuseLayer {
+            fuseLayer = existing
+        } else {
+            fuseLayer = CAShapeLayer()
+            fuseLayer.fillColor = UIColor.clear.cgColor
+            fuseLayer.lineCap = .round
+            layer.addSublayer(fuseLayer)
+            jobs_fuseLayer = fuseLayer
+        }
+
+        // 配置几何与样式（复用你倒计时的 path 计算方式）
+        fuseLayer.frame = bounds
+        let inset = config.inset + config.lineWidth / 2.0
+        let rect = bounds.insetBy(dx: inset, dy: inset)
+        let cornerRadius = self.layer.cornerRadius
+        let path = UIBezierPath(roundedRect: rect, cornerRadius: cornerRadius)
+
+        fuseLayer.path = path.cgPath
+        fuseLayer.lineWidth = config.lineWidth
+        fuseLayer.strokeColor = config.color.cgColor
+
+        // progress 初始=0（禁用隐式动画）
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        switch config.direction {
+        case .clockwise:
+            fuseLayer.strokeStart = 0
+            fuseLayer.strokeEnd = 0
+        case .counterClockwise:
+            // 反向增长：先“空”出来（start=end=1）
+            fuseLayer.strokeStart = 1
+            fuseLayer.strokeEnd = 1
+        }
+        CATransaction.commit()
+    }
+
+    /// 更新外圈 progress（0...1）
+    func jobs_updateFuseProgress(_ progress: CGFloat, animated: Bool = false) {
+        let p = max(0, min(1, progress))
+
+        guard let fuseLayer = jobs_fuseLayer else {
+            // 没准备过就先准备（用默认 config）
+            jobs_prepareFuseProgress()
+            jobs_updateFuseProgress(p, animated: animated)
+            return
+        }
+        guard let config = jobs_fuseConfig else {
+            jobs_fuseConfig = JobsFuseConfig()
+            jobs_updateFuseProgress(p, animated: animated)
+            return
+        }
+
+        CATransaction.begin()
+        CATransaction.setDisableActions(!animated)
+        switch config.direction {
+        case .clockwise:
+            fuseLayer.strokeStart = 0
+            fuseLayer.strokeEnd = p
+        case .counterClockwise:
+            // 反向增长：露出“尾部”那一段
+            fuseLayer.strokeStart = 1 - p
+            fuseLayer.strokeEnd = 1
+        }
+        CATransaction.commit()
+    }
+}

@@ -9,6 +9,8 @@ import AppKit
 #elseif os(iOS) || os(tvOS)
 import UIKit
 #endif
+
+import ObjectiveC
 // MARK: - 给任意 UIView 增加悬浮能力（可拖拽、吸附、尊重安全区），默认挂在活动窗口。
 // 风格：链式 DSL（.suspend / .bySuspend），主线程 API 使用 @MainActor 保障。
 // 注意：悬浮 view 使用 frame 驱动，勿再对其添加 AutoLayout 约束。
@@ -75,6 +77,7 @@ private enum SuspendKeys {
     static var configKey: UInt8 = 0
     static var panKey: UInt8 = 0
     static var suspendedKey: UInt8 = 0
+    static var panDelegateKey: UInt8 = 0   // ✅ 新增：持有手势 delegate（delegate 是 weak，不持有会被释放）
 }
 // MARK: - 主功能
 public extension UIView {
@@ -91,6 +94,7 @@ public extension UIView {
         }
         objc_setAssociatedObject(self, &SuspendKeys.configKey, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         objc_setAssociatedObject(self, &SuspendKeys.panKey, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        objc_setAssociatedObject(self, &SuspendKeys.panDelegateKey, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC) // ✅ 新增
         objc_setAssociatedObject(self, &SuspendKeys.suspendedKey, false, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         removeFromSuperview()
     }
@@ -126,6 +130,8 @@ public extension UIView {
                 addGestureRecognizer(pan)
                 objc_setAssociatedObject(self, &SuspendKeys.panKey, pan, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
             }
+            // ✅ 关键：解决 “悬浮 pan” 与 “外圈长按 longPress(min=0)” 的冲突
+            _enableSimultaneousPanWithLongPress(pan)
         }
         // 8) 标记
         objc_setAssociatedObject(self, &SuspendKeys.suspendedKey, true, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
@@ -140,6 +146,41 @@ public extension UIView {
 }
 // MARK: - 私有实现
 private extension UIView {
+    // MARK: - ✅ 手势冲突处理（Pan + LongPress 同时识别）
+    final class JobsSuspendGestureDelegate: NSObject, UIGestureRecognizerDelegate {
+        func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
+                               shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+            // 只放行 Pan <-> LongPress 这组（避免影响你别的手势逻辑）
+            let aIsPan = gestureRecognizer is UIPanGestureRecognizer
+            let bIsPan = otherGestureRecognizer is UIPanGestureRecognizer
+            let aIsLong = gestureRecognizer is UILongPressGestureRecognizer
+            let bIsLong = otherGestureRecognizer is UILongPressGestureRecognizer
+            return (aIsPan && bIsLong) || (aIsLong && bIsPan)
+        }
+    }
+
+    func _suspendGestureDelegate() -> JobsSuspendGestureDelegate {
+        if let d = objc_getAssociatedObject(self, &SuspendKeys.panDelegateKey) as? JobsSuspendGestureDelegate {
+            return d
+        }
+        let d = JobsSuspendGestureDelegate()
+        objc_setAssociatedObject(self, &SuspendKeys.panDelegateKey, d, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        return d
+    }
+
+    func _enableSimultaneousPanWithLongPress(_ pan: UIPanGestureRecognizer) {
+        let d = _suspendGestureDelegate()
+        // pan 自己挂 delegate（允许与 longPress 同时识别）
+        pan.delegate = d
+        pan.cancelsTouchesInView = false
+        // 同一个 view 上如果已经存在 longPress（比如你 fuse 的 longPress），且 delegate 为空，就也挂上同一个 delegate
+        // 这样系统在询问 “是否允许同时识别” 时，两边都会返回 true，拖拽就不会被 longPress 抢死。
+        gestureRecognizers?.forEach { gr in
+            if let lp = gr as? UILongPressGestureRecognizer, lp.delegate == nil {
+                lp.delegate = d
+            }
+        }
+    }
     /// 根据 start & 可用区域推导初始 origin
     func _origin(for start: Start, size: CGSize, in bounds: CGRect) -> CGPoint {
         switch start {
@@ -210,8 +251,7 @@ private extension UIView {
                 let dy = center.y - (c.y + h * 0.5)
                 let d  = dx*dx + dy*dy
                 if d < bestD { bestD = d; best = c }
-            }
-            return best
+            };return best
         }
     }
 
@@ -290,16 +330,14 @@ private extension UIView {
                 .byHidden(false)
             if win.rootViewController == nil {
                 win.rootViewController = UIViewController()
-            }
-            return win
+            };return win
         } else {
             let win = UIWindow(frame: UIScreen.main.bounds)
                 .byWindowLevel(.alert + 1)
                 .byHidden(false)
             if win.rootViewController == nil {
                 win.rootViewController = UIViewController()
-            }
-            return win
+            };return win
         }
     }
 }

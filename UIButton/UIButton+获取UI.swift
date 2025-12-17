@@ -6,9 +6,7 @@
 //
 #if os(OSX)
 import AppKit
-#endif
-
-#if os(iOS) || os(tvOS)
+#elseif os(iOS) || os(tvOS)
 import UIKit
 #endif
 // MARK: 获取@标题、副标题、前景图、背景图

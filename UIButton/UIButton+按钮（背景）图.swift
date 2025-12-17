@@ -6,9 +6,7 @@
 //
 #if os(OSX)
 import AppKit
-#endif
-
-#if os(iOS) || os(tvOS)
+#elseif os(iOS) || os(tvOS)
 import UIKit
 #endif
 // MARK: 按钮背景图加载（UIImage / Base64 / URL）

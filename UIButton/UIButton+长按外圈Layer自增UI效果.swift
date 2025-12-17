@@ -5,7 +5,11 @@
 //  Created by Jobs on 12/17/25.
 //
 
+#if os(OSX)
+import AppKit
+#elseif os(iOS) || os(tvOS)
 import UIKit
+#endif
 import ObjectiveC
 import QuartzCore
 

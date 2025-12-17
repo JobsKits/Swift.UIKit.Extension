@@ -12,19 +12,31 @@ import UIKit
 
 extension UIColor {
     /// init method with RGB values from 0 to 255, instead of 0 to 1. With alpha(default:1)
-    public convenience init(r: CGFloat, g: CGFloat, b: CGFloat, a: CGFloat = 1) {
-        self.init(red: r / 255.0, green: g / 255.0, blue: b / 255.0, alpha: a)
+    public convenience init(r: CGFloat,
+                            g: CGFloat,
+                            b: CGFloat,
+                            a: CGFloat = 1) {
+        self.init(red: r / 255.0,
+                  green: g / 255.0,
+                  blue: b / 255.0,
+                  alpha: a)
     }
     /// init method with RGB values from 0 to 255, instead of 0 to 1. With alpha(default:1)
-    public convenience init(_ r: CGFloat, _ g: CGFloat, _ b: CGFloat) {
-        self.init(red: r / 255.0, green: g / 255.0, blue: b / 255.0, alpha: 1.0)
+    public convenience init(_ r: CGFloat,
+                            _ g: CGFloat,
+                            _ b: CGFloat) {
+        self.init(red: r / 255.0,
+                  green: g / 255.0,
+                  blue: b / 255.0,
+                  alpha: 1.0)
     }
     /// init method with hex string and alpha(default: 1)
     /// 支持格式：
     /// "#RRGGBB" / "RRGGBB" / "0xRRGGBB"
     /// "#RGB"   / "RGB"
     /// "#AARRGGBB" / "AARRGGBB"
-    convenience init?(hexString: String, alpha: CGFloat = 1) {
+    convenience init?(hexString: String,
+                      alpha: CGFloat = 1) {
         var hex = hexString.trimmingCharacters(in: .whitespacesAndNewlines)
                            .lowercased()
         // 去掉前缀
@@ -63,10 +75,12 @@ extension UIColor {
             return nil
         };self.init(red: r, green: g, blue: b, alpha: a)
     }
-
     /// init method from Gray value and alpha(default:1)
     public convenience init(gray: CGFloat, alpha: CGFloat = 1) {
-        self.init(red: gray/255, green: gray/255, blue: gray/255, alpha: alpha)
+        self.init(red: gray/255,
+                  green: gray/255,
+                  blue: gray/255,
+                  alpha: alpha)
     }
 }
 
@@ -107,11 +121,14 @@ extension UIColor {
                        alpha: CGFloat(alpha))
     }
     /// 生成随机颜色
+    static func randomColor(alpha: CGFloat = 1.0) -> UIColor {
+        return UIColor(red: CGFloat.random(in: 0...1),
+                       green: CGFloat.random(in: 0...1),
+                       blue: CGFloat.random(in: 0...1),
+                       alpha: alpha)
+    }
     static var randomColor: UIColor {
-        let red = CGFloat.random(in: 0...1)
-        let green = CGFloat.random(in: 0...1)
-        let blue = CGFloat.random(in: 0...1)
-        return UIColor(red: red, green: green, blue: blue, alpha: 1.0)
+        randomColor()
     }
 }
 /* 设置多颜色样式 会用到

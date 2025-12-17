@@ -213,6 +213,13 @@ extension UIView {
         frame.size = size
         return self
     }
+    /// 允许在链式调用里“根据自身当前状态”计算 size
+    @discardableResult
+    func bySize(_ make: (Self) -> CGSize) -> Self {
+        sizeToFit()
+        frame.size = make(self)
+        return self
+    }
 
     @discardableResult
     func bySize(width: CGFloat, height: CGFloat) -> Self {

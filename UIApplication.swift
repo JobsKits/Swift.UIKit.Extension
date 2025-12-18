@@ -99,6 +99,11 @@ public extension UIApplication {
     static var jobsSafeBottomInset: CGFloat { jobsSafeAreaInsets.bottom }
     static var jobsSafeLeftInset: CGFloat { jobsSafeAreaInsets.left }
     static var jobsSafeRightInset: CGFloat { jobsSafeAreaInsets.right }
+    /// ⑤ 是否“刘海/全面屏 iPhone”（本质：是否存在 Home Indicator 的底部安全区）
+    /// ✅ 模拟器同样有效（取决于你选的机型）
+    static var jobsIsNotchPhone: Bool {
+        UIDevice.current.userInterfaceIdiom == .phone && jobsSafeBottomInset > 0
+    }
 }
 // MARK: - 内部实现（iOS 13+）
 @available(iOS 13.0, *)

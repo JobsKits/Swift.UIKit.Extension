@@ -125,3 +125,61 @@ extension UIView {
         self.layer.add(animation, forKey: "shake")
     }
 }
+// MARK: 动画@哪里来哪里去
+#if canImport(SnapKit)
+import SnapKit
+
+public enum JobsSlideDirection {
+    case top, bottom, left, right
+}
+
+public enum JobsSlideCase {
+    /// 从某个方向“来”（展开到 size）
+    case show(from: JobsSlideDirection, size: CGFloat)
+    /// 到某个方向“去”（收起到 collapsedSize，默认 0）
+    case hide(to: JobsSlideDirection)
+}
+
+public extension UIView {
+    func jobs_slide(
+        _ slide: JobsSlideCase,
+        sizeConstraint: Constraint?,
+        collapsedSize: CGFloat = 0,
+        duration: TimeInterval = 0.25,
+        options: UIView.AnimationOptions = [.curveEaseInOut],
+        fade: Bool = true,
+        autoHide: Bool = true,
+        completion: (() -> Void)? = nil
+    ) {
+        guard let superview else { completion?(); return }
+        guard let sizeConstraint else { completion?(); return }
+
+        superview.layoutIfNeeded()
+
+        switch slide {
+        case let .show(from: _, size: size):
+            isHidden = false
+            if fade { alpha = 0 }
+            sizeConstraint.update(offset: size)
+            UIView.animate(withDuration: duration, delay: 0, options: options) {
+                if fade { self.alpha = 1 }
+                superview.layoutIfNeeded()
+            } completion: { _ in
+                completion?()
+            }
+
+        case .hide(to: _):
+            sizeConstraint.update(offset: collapsedSize)
+            UIView.animate(withDuration: duration, delay: 0, options: options) {
+                if fade { self.alpha = 0 }
+                superview.layoutIfNeeded()
+            } completion: { _ in
+                if autoHide { self.isHidden = true }
+                completion?()
+            }
+        }
+    }
+}
+
+
+#endif

@@ -12,7 +12,6 @@ import UIKit
 // MARK: - SnapKit
 #if canImport(SnapKit)
 import SnapKit
-
 private enum _JobsAssocKeys {
     static var addClosureKey: UInt8 = 0
 }
@@ -46,17 +45,21 @@ public extension UIView {
     }
     // MARK: - 添加到父视图
     @discardableResult
-    func byAddTo(_ superview: UIView) -> Self {
+    func byAddTo(_ superview: UIView,
+                 _ closure: ((ConstraintMaker) -> Void)? = nil) -> Self {
         superview.addSubview(self)
-        return self
+        if let closure {
+            self.snp.makeConstraints(closure)
+        };return self
     }
 
     @discardableResult
-    func byAddTo(_ superview: UIView,
-                 _ closure: ((_ make: ConstraintMaker) -> Void)? = nil) -> Self {
-        superview.addSubview(self)
-        byAdd(closure)
-        return self
+    func byAddTo(_ superView: UIView,
+                 _ closure: (_ v: UIView, _ make: ConstraintMaker) -> Void) -> Self {
+        superView.addSubview(self)
+        self.snp.makeConstraints { make in
+            closure(self, make)
+        };return self
     }
     // MARK: - 链式 makeConstraints
     @discardableResult

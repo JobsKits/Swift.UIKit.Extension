@@ -11,6 +11,7 @@ import UIKit
 #endif
 extension UILabel {
     // MARK: 设置富文本
+    @discardableResult
     func richTextBy(_ runs: [JobsRichRun], paragraphStyle: NSMutableParagraphStyle? = nil)->Self {
         self.attributedText = JobsRichText.make(runs, paragraphStyle: paragraphStyle)
         self.isUserInteractionEnabled = false

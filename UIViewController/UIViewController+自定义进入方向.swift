@@ -105,7 +105,7 @@ public extension UIViewController {
                 nav.pushViewController(self, animated: false)
                 // appear-jobsByVoidBlock 兜底
                 DispatchQueue.main.async { [weak self] in
-                    self?.jobs_fireAppearJobsVoidBlockIfNeeded(reason: "pushCATransition")
+                    self?.jobs_fireAppearCompletionIfNeeded(reason: "pushCATransition")
                 };return self
             } else {
                 // 系统默认动画 → 不记录方向（保持系统默认 pop 行为）
@@ -113,11 +113,11 @@ public extension UIViewController {
                 nav.pushViewController(self, animated: true)
                 if let tc = nav.transitionCoordinator {
                     tc.animate(alongsideTransition: nil) { [weak self] _ in
-                        self?.jobs_fireAppearJobsVoidBlockIfNeeded(reason: "pushTransitionCoordinator")
+                        self?.jobs_fireAppearCompletionIfNeeded(reason: "pushTransitionCoordinator")
                     }
                 } else {
                     DispatchQueue.main.async { [weak self] in
-                        self?.jobs_fireAppearJobsVoidBlockIfNeeded(reason: "pushAsyncFallback")
+                        self?.jobs_fireAppearCompletionIfNeeded(reason: "pushAsyncFallback")
                     }
                 };return self
             }
@@ -143,12 +143,12 @@ public extension UIViewController {
             self._jobs_entryTiming = timing
 
             host.present(wrapped, animated: false) { [weak self] in
-                self?.jobs_fireAppearJobsVoidBlockIfNeeded(reason: "presentWrappedForPushCATransition")
+                self?.jobs_fireAppearCompletionIfNeeded(reason: "presentWrappedForPushCATransition")
             }
         } else {
             self._jobs_entryDirection = nil
             host.present(wrapped, animated: true) { [weak self] in
-                self?.jobs_fireAppearJobsVoidBlockIfNeeded(reason: "presentWrappedForPush")
+                self?.jobs_fireAppearCompletionIfNeeded(reason: "presentWrappedForPush")
             }
         };return self
     }

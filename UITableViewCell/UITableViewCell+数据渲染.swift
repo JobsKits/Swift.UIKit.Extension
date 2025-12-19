@@ -10,8 +10,8 @@ import AppKit
 #elseif os(iOS) || os(tvOS)
 import UIKit
 #endif
-
-public extension CellDataProtocol where Self: UITableViewCell {
+@MainActor
+public extension ViewDataProtocol where Self: UITableViewCell {
     @discardableResult
     func byData(_ any: Any?) -> Self {
         guard let cfg = any as? JobsCellConfig else { return self }
@@ -28,5 +28,3 @@ public extension CellDataProtocol where Self: UITableViewCell {
         }
     }
 }
-
-extension UITableViewCell: CellDataProtocol {}

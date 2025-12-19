@@ -10,42 +10,34 @@ import AppKit
 #elseif os(iOS) || os(tvOS)
 import UIKit
 #endif
-// ================================== 数据传递 + 出现完成回调 ==================================
+
+import ObjectiveC.runtime
+
 private enum JobsAssocKey {
-    static var inputData: UInt8 = 0
-    static var onResult: UInt8 = 1
-    static var onAppearJobsVoidBlocks: UInt8 = 2
-    static var appearJobsVoidBlockFired: UInt8 = 3
+    static var callback: UInt8 = 0
+    static var onAppearCompletions: UInt8 = 1
+    static var appearCompletionFired: UInt8 = 2
 }
-
-extension UIViewController: JobsRouteComparable {
-    @inline(__always)
-    public func jobs_isSameDestination(as other: UIViewController) -> Bool {
-        type(of: self) == type(of: other)
-    }
-}
-
-public extension UIViewController {
+/// ✅ 覆盖所有 ViewController（UIViewController 及其子类）
+extension UIViewController: ViewDataProtocol {}
+@MainActor
+public extension ViewDataProtocol where Self: UIViewController {
+    // ================================== 正向：传值即渲染（默认 no-op） ==================================
+    /// 默认实现：什么都不做，留给子类 VC 自己实现 `byData(_:)` 去解析/渲染
     @discardableResult
-    func byData(_ data: Any?) -> Self {
-        objc_setAssociatedObject(self, &JobsAssocKey.inputData, data, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+    func byData(_ any: Any?) -> Self { self }
+    // ================================== 逆向：回传 ==================================
+    @discardableResult
+    func onResult(_ callback: @escaping jobsByAnyBlock) -> Self {
+        objc_setAssociatedObject(self, &JobsAssocKey.callback, callback, .OBJC_ASSOCIATION_COPY_NONATOMIC)
         return self
     }
-
-    func inputData<T>() -> T? {
-        objc_getAssociatedObject(self, &JobsAssocKey.inputData) as? T
+    func sendResult(_ any: Any?) {
+        (objc_getAssociatedObject(self, &JobsAssocKey.callback) as? jobsByAnyBlock)?(any)
     }
+}
 
-    @discardableResult
-    func onResult(_ callback: @escaping (Any) -> Void) -> Self {
-        objc_setAssociatedObject(self, &JobsAssocKey.onResult, callback, .OBJC_ASSOCIATION_COPY_NONATOMIC)
-        return self
-    }
-
-    func sendResult(_ result: Any) {
-        if let cb = objc_getAssociatedObject(self, &JobsAssocKey.onResult) as? (Any) -> Void { cb(result) }
-    }
-
+extension UIViewController{
     @discardableResult
     func goBack(_ result: Any?, animated: Bool = true) -> Self {
         if let r = result { sendResult(r) }
@@ -55,26 +47,26 @@ public extension UIViewController {
     }
     // ✅ 出现完成（push/present 结束）的一次性回调
     @discardableResult
-    func byJobsVoidBlock(_ block: @escaping jobsByVoidBlock) -> Self {
+    func byCompletion(_ block: @escaping jobsByVoidBlock) -> Self {
         UIViewController._JobsAppearSwizzler.installIfNeeded()
-        var arr = (objc_getAssociatedObject(self, &JobsAssocKey.onAppearJobsVoidBlocks) as? [jobsByVoidBlock]) ?? []
+        var arr = (objc_getAssociatedObject(self, &JobsAssocKey.onAppearCompletions) as? [jobsByVoidBlock]) ?? []
         arr.append(block)
-        objc_setAssociatedObject(self, &JobsAssocKey.onAppearJobsVoidBlocks, arr, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        objc_setAssociatedObject(self, &JobsAssocKey.onAppearCompletions, arr, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         // 若已在窗口（先跳转后注册），下一轮主线程立即触发
         if self.viewIfLoaded?.window != nil {
-            DispatchQueue.main.async { [weak self] in self?.jobs_fireAppearJobsVoidBlockIfNeeded(reason: "alreadyVisible") }
+            DispatchQueue.main.async { [weak self] in self?.jobs_fireAppearCompletionIfNeeded(reason: "alreadyVisible") }
         };return self
     }
 
-    func jobs_fireAppearJobsVoidBlockIfNeeded(reason: String) {
-        let fired = (objc_getAssociatedObject(self, &JobsAssocKey.appearJobsVoidBlockFired) as? Bool) ?? false
+    func jobs_fireAppearCompletionIfNeeded(reason: String) {
+        let fired = (objc_getAssociatedObject(self, &JobsAssocKey.appearCompletionFired) as? Bool) ?? false
         guard !fired else { return }
-        guard let blocks = objc_getAssociatedObject(self, &JobsAssocKey.onAppearJobsVoidBlocks) as? [jobsByVoidBlock],
+        guard let blocks = objc_getAssociatedObject(self, &JobsAssocKey.onAppearCompletions) as? [jobsByVoidBlock],
               !blocks.isEmpty else { return }
-        objc_setAssociatedObject(self, &JobsAssocKey.appearJobsVoidBlockFired, true, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
-        objc_setAssociatedObject(self, &JobsAssocKey.onAppearJobsVoidBlocks, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        objc_setAssociatedObject(self, &JobsAssocKey.appearCompletionFired, true, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        objc_setAssociatedObject(self, &JobsAssocKey.onAppearCompletions, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         blocks.forEach { $0() }
-        // print("✅ [JobsAppearJobsVoidBlock] fired by \(reason) for \(self)")
+        // print("✅ [JobsAppearCompletion] fired by \(reason) for \(self)")
     }
 }
 // `viewDidAppear` swizzle：出现完成时机
@@ -95,14 +87,13 @@ private extension UIViewController {
 
     @objc func jobs_viewDidAppear_swizzled(_ animated: Bool) {
         self.jobs_viewDidAppear_swizzled(animated) // 原实现
-        self.jobs_fireAppearJobsVoidBlockIfNeeded(reason: "viewDidAppear")
+        self.jobs_fireAppearCompletionIfNeeded(reason: "viewDidAppear")
     }
 }
-// MARK: - 给“实现了 JobsDataReceivable 的 VC”提供强类型重载：编译期直达 receive(_:)
-extension JobsDataReceivable where Self: UIViewController {
-    @discardableResult
-    func byData(_ data: InputData) -> Self {
-        receive(data)
-        return self
+
+extension UIViewController: JobsRouteComparable {
+    @inline(__always)
+    public func jobs_isSameDestination(as other: UIViewController) -> Bool {
+        type(of: self) == type(of: other)
     }
 }

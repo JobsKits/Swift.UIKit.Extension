@@ -26,7 +26,6 @@ public extension UIViewController {
     ) {
         // 标题（GK 只吃 String）
         gk_navTitle = title.asString
-
         // 左侧按钮：nil → 默认返回；否则用传入的 UIButton
         if let btn = leftButton {
             gk_navLeftBarButtonItem = UIBarButtonItem(customView: btn)
@@ -37,7 +36,14 @@ public extension UIViewController {
         }
         // 右侧按钮：只有在非空时才创建
         if let items = rightButtons, !items.isEmpty {
-            gk_navRightBarButtonItems = items.map { UIBarButtonItem(customView: $0) }
+//            gk_navRightBarButtonItems = items.map { UIBarButtonItem(customView: $0) }
+            gk_navRightBarButtonItems = [UIBarButtonItem(customView: UIStackView(arrangedSubviews: items)
+                .byAxis(.horizontal)
+                .byAlignment(.center)
+                .byDistribution(.fill)
+                .bySpacing(0)
+                .byTranslatesAutoresizingMaskIntoConstraints(NO)
+                .byHeight(44.h))]
         } else {
             gk_navRightBarButtonItems = nil
         }
@@ -58,7 +64,6 @@ public extension UIViewController {
     /// 立即隐藏/显示 GK 的导航栏（并把系统栏同步隐藏，避免双栏）
     @discardableResult
     func byGKNavBarHidden(_ hidden: Bool) -> Self {
-        _ = gk_navigationBar                 // 触发创建与挂载
         gk_navigationBar.isHidden = hidden   // 真实隐藏 GK 的 bar
         navigationController?.setNavigationBarHidden(hidden, animated: false) // 避免系统栏干扰
         return self

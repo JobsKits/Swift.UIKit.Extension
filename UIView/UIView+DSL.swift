@@ -528,4 +528,22 @@ extension UIView {
             setNeedsLayout()
         };return self
     }
+    /// 开启 AutoLayout（等价于 translatesAutoresizingMaskIntoConstraints = false）
+    @discardableResult
+    func byAutoLayout() -> Self {
+        translatesAutoresizingMaskIntoConstraints = false
+        return self
+    }
+    /// 直接设置 translatesAutoresizingMaskIntoConstraints
+    @discardableResult
+    func byTranslatesAutoresizingMaskIntoConstraints(_ value: Bool) -> Self {
+        translatesAutoresizingMaskIntoConstraints = value
+        return self
+    }
+     /// 激活约束（链式）
+    @discardableResult
+    func byConstraints(_ block: (Self) -> [NSLayoutConstraint]) -> Self {
+        NSLayoutConstraint.activate(block(self))
+        return self
+    }
 }

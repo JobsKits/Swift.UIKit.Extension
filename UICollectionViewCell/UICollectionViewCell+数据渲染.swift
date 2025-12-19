@@ -11,10 +11,8 @@ import AppKit
 import UIKit
 #endif
 
-public extension CellDataProtocol where Self: UICollectionViewCell {
-    /// ✅ Collection 的默认实现（先给 no-op，后面你要渲染再扩展）
+@MainActor
+public extension ViewDataProtocol where Self: UICollectionViewCell {
     @discardableResult
     func byData(_ any: Any?) -> Self { self }
 }
-
-extension UICollectionViewCell: CellDataProtocol {}

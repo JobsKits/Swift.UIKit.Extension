@@ -249,7 +249,7 @@ public extension UIViewController {
         // 系统 present；完成时触发一次（与 viewDidAppear 幂等）
         host.present(self, animated: animated) { [weak self] in
             jobsByVoidBlock?()
-            self?.jobs_fireAppearJobsVoidBlockIfNeeded(reason: "presentJobsVoidBlock")
+            self?.jobs_fireAppearCompletionIfNeeded(reason: "presentJobsVoidBlock")
         };return self
     }
 }

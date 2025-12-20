@@ -190,6 +190,8 @@ public extension UIView {
         let radius = h / 2
         layer.cornerRadius = radius
         self.layer.cornerRadius = max(self.layer.cornerRadius, radius)
+        // ✅ 关键：布局出来后，如果之前没启动动画，这里补启动
+        jobs_startShimmerAnimationIfNeeded()
     }
     /// 仅给呼吸层设置 mask（SlideToUnlock 用这个来裁掉滑块经过区域）
     func jobs_setShimmerMask(_ maskLayer: CALayer?) {

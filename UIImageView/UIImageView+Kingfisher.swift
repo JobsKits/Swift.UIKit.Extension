@@ -40,5 +40,18 @@ public extension UIImageView {
             image = img
         };return self
     }
+    /// 带呼吸效果
+    @discardableResult
+    func byShimmeringAsyncImageKF(
+        _ src: String,
+        fallback: @autoclosure @escaping @Sendable () -> UIImage
+    ) -> Self {
+        // 关键：这里传 shimmerConfig label，确保走“带呼吸”的实现
+        kf_setImage(from: src,
+                    placeholder: fallback(),
+                    fade: 0.25,
+                    shimmerConfig: .default)
+        return self
+    }
 }
 #endif

@@ -48,5 +48,18 @@ public extension UIImageView {
             image = img
         };return self
     }
+    /// 带呼吸效果
+    @discardableResult
+    func byShimmeringAsyncImageSD(
+        _ src: String,
+        fallback: @autoclosure @escaping @Sendable () -> UIImage
+    ) -> Self {
+        // 关键：用 shimmerConfig 这个 label，确保调用到“带呼吸”的 sd_setImage
+        sd_setImage(from: src,
+                    placeholder: fallback(),
+                    fade: 0.25,
+                    shimmerConfig: .default)
+        return self
+    }
 }
 #endif

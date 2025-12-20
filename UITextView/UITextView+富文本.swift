@@ -19,3 +19,18 @@ public extension UITextView {
         dataDetectorTypes = [] // 仅走自定义 link
     }
 }
+let ps = jobsMakeParagraphStyle {
+    $0.alignment = .center
+    $0.lineSpacing = 4
+}
+
+let runs: [JobsRichRun] = [
+    JobsRichRun(.text("如需帮助，请联系 "))
+        .font(.systemFont(ofSize: 15))
+        .color(.secondaryLabel),
+
+    JobsRichRun(.text("专属客服"))
+        .font(.systemFont(ofSize: 15))
+        .color(.systemBlue)
+        .link("click://customer")
+]

@@ -49,7 +49,7 @@ public extension NSMutableAttributedString {
     }
     // MARK: - 追加
     @discardableResult
-    func add(_ attrString: NSAttributedString) -> Self {
+    func byAdd(_ attrString: NSAttributedString) -> Self {
         self.append(attrString)
         return self
     }

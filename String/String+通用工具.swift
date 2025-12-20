@@ -124,3 +124,15 @@ public extension String {
         return comps.url
     }
 }
+
+public extension String {
+    func boundingHeight(width: CGFloat, font: UIFont) -> CGFloat {
+        guard width > 0 else { return 0 }
+        let rect = (self as NSString).boundingRect(
+            with: CGSize(width: width, height: .greatestFiniteMagnitude),
+            options: [.usesLineFragmentOrigin, .usesFontLeading],
+            attributes: [.font: font],
+            context: nil
+        );return ceil(rect.height)
+    }
+}

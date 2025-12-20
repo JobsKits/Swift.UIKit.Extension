@@ -75,11 +75,13 @@ private extension UIButton {
         case let (nil, s?):
             setAttributedTitle(s, for: state)
         case let (t?, s?):
-            titleLabel?.byNumberOfLines(0).byTextAlignment(.center)
+            titleLabel?
+                .byNumberOfLines(0)
+                .byTextAlignment(.center)
             byAttributedTitle(NSMutableAttributedString()
-                .add(t)
-                .add("\n".rich)
-                .add(s), for: state)
+                .byAdd(t)
+                .byAdd("\n".rich)
+                .byAdd(s), for: state)
         }
     }
 }

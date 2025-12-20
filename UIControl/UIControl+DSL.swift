@@ -12,15 +12,37 @@ import UIKit
 
 public extension UIControl {
     // MARK: - 基础状态
-    @discardableResult func byEnabled(_ on: Bool) -> Self { self.isEnabled = on; return self }
-    @discardableResult func bySelected(_ on: Bool) -> Self { self.isSelected = on; return self }
-    @discardableResult func byHighlighted(_ on: Bool) -> Self { self.isHighlighted = on; return self }
-    // MARK: - 内容对齐
+    @discardableResult
+    func byEnabled(_ on: Bool) -> Self { self.isEnabled = on; return self }
+    @discardableResult
+    func bySelected(_ on: Bool) -> Self { self.isSelected = on; return self }
+    @discardableResult
+    func byHighlighted(_ on: Bool) -> Self { self.isHighlighted = on; return self }
+    // MARK: - 内容对齐（你关心的 contentHorizontalAlignment / contentVerticalAlignment）
+    /// ✅ 单独设置 contentHorizontalAlignment
+    @discardableResult
+    func byContentHorizontalAlignment(_ alignment: UIControl.ContentHorizontalAlignment) -> Self {
+        self.contentHorizontalAlignment = alignment
+        return self
+    }
+    /// ✅ 单独设置 contentVerticalAlignment
+    @discardableResult
+    func byContentVerticalAlignment(_ alignment: UIControl.ContentVerticalAlignment) -> Self {
+        self.contentVerticalAlignment = alignment
+        return self
+    }
+    /// 兼容你原来的“同时设置”写法（保留）
     @discardableResult
     func byContentAlignment(horizontal: UIControl.ContentHorizontalAlignment? = nil,
                             vertical: UIControl.ContentVerticalAlignment? = nil) -> Self {
         if let h = horizontal { self.contentHorizontalAlignment = h }
-        if let v = vertical   { self.contentVerticalAlignment = v }
+        if let v = vertical { self.contentVerticalAlignment = v }
+        return self
+    }
+    /// effectiveContentHorizontalAlignment 是只读属性：这里只能提供读取（无法 DSL set）
+    @discardableResult
+    func onEffectiveContentHorizontalAlignment(_ block: (UIControl.ContentHorizontalAlignment) -> Void) -> Self {
+        block(self.effectiveContentHorizontalAlignment)
         return self
     }
     // MARK: - Target-Action（传统）
@@ -56,7 +78,7 @@ public extension UIControl {
     func byRemoveAction(identifiedBy id: UIAction.Identifier, for events: UIControl.Event) -> Self {
         removeAction(identifiedBy: id, for: events); return self
     }
-    /// 便捷：创建并添加一个闭包形式 UIAction，返回 action 以便后续移除
+    /// 便捷：闭包形式 UIAction（建议你平时就用这个）
     @available(iOS 14.0, *)
     @discardableResult
     func byOn(_ events: UIControl.Event,
@@ -65,6 +87,13 @@ public extension UIControl {
         let action = UIAction(identifier: id, handler: handler)
         addAction(action, for: events)
         return self
+    }
+    /// 便捷：primaryActionTriggered
+    @available(iOS 14.0, *)
+    @discardableResult
+    func byOnPrimaryAction(id: UIAction.Identifier? = nil,
+                           _ handler: @escaping (UIAction) -> Void) -> Self {
+        byOn(.primaryActionTriggered, id: id, handler)
     }
     // MARK: - Primary Action（iOS 17.4+）
     @available(iOS 17.4, *)

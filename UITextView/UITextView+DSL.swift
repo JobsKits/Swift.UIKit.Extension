@@ -180,6 +180,22 @@ public extension UITextView {
         self.adjustsFontForContentSizeCategory = true
         return self
     }
+    /// DSL：用回调配置 textContainer（iOS: 一定存在；macOS: 可能为 nil）
+    @discardableResult
+    public func byTextContainer(_ block: (NSTextContainer) -> Void) -> Self {
+        #if os(OSX)
+        guard let tc = self.textContainer else { return self }
+        block(tc)
+        #else
+        block(self.textContainer)
+        #endif
+        return self
+    }
+    /// DSL：专门给 lineFragmentPadding 赋值（更短）
+    @discardableResult
+    public func byLineFragmentPadding(_ padding: CGFloat) -> Self {
+        return byTextContainer { $0.lineFragmentPadding = padding }
+    }
 }
 
 public extension UITextView {

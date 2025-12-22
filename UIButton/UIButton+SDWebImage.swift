@@ -97,6 +97,22 @@ private extension UIButton {
             }
         }
     }
+
+    // MARK: - Foreground load token（解决：旧请求回调/取消回调把新请求的 shimmer 停掉）
+    private enum _JobsSDButtonTokenAOKey { static var fgTokenMap: UInt8 = 0 }
+
+    func _jobs_sdNextForegroundToken(for state: UIControl.State) -> Int {
+        var map = (objc_getAssociatedObject(self, &_JobsSDButtonTokenAOKey.fgTokenMap) as? [UInt: Int]) ?? [:]
+        let next = (map[state.rawValue] ?? 0) + 1
+        map[state.rawValue] = next
+        objc_setAssociatedObject(self, &_JobsSDButtonTokenAOKey.fgTokenMap, map, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        return next
+    }
+
+    func _jobs_sdIsCurrentForegroundToken(_ token: Int, for state: UIControl.State) -> Bool {
+        let map = (objc_getAssociatedObject(self, &_JobsSDButtonTokenAOKey.fgTokenMap) as? [UInt: Int]) ?? [:]
+        return map[state.rawValue] == token
+    }
     // MARK: - Shimmer helpers（loading 占位）
     func _jobs_startForegroundShimmer() {
         let v: UIView = self.imageView ?? self
@@ -201,25 +217,27 @@ public extension UIButton {
     // MARK: - 前景图（SDWebImage）
     func _sd_loadImage(for state: UIControl.State) {
         let cfg = _sd_config
+        let token = _jobs_sdNextForegroundToken(for: state)
         // ✅ 标记实际使用的框架（给 JobsImageCacheCleaner 用）
         self.jobs_imageLoaderKind = .sdwebimage
         // ✅ 记录：前景 state / url（供 JobsImageCacheCleaner 遍历重下）
         self.jobs_remoteState = state
         // ✅ Loading：永远先 Shimmer（placeholder 只作为「失败兜底」）
         _jobs_runOnMain { btn in
+            guard btn._jobs_sdIsCurrentForegroundToken(token, for: state) else { return }
             btn._jobs_forceSetForegroundImage(nil, for: state)
             btn._jobs_startForegroundShimmer()
         }
 
         guard let url = cfg.url else {
             self.jobs_remoteURL = nil
-            // URL 解析失败也视为失败：有兜底图则显示兜底并停 shimmer；否则继续 shimmer
-            if let fb = cfg.placeholder {
-                _jobs_runOnMain { btn in
-                    btn._jobs_stopForegroundShimmer()
-                    btn._jobs_forceSetForegroundImage(fb, for: state)
-                }
-            };return
+            // URL 解析失败也视为失败：✅ 结束 shimmer（包含失败）
+            _jobs_runOnMain { btn in
+                guard btn._jobs_sdIsCurrentForegroundToken(token, for: state) else { return }
+                btn._jobs_stopForegroundShimmer()
+                btn._jobs_forceSetForegroundImage(cfg.placeholder, for: state)
+            }
+            return
         }
         self.jobs_remoteURL = url
         // ✅ 目标尺寸：优先你显式设置的 targetSize，否则按 UI 猜一个兜底值
@@ -244,11 +262,18 @@ public extension UIButton {
         ) { [weak self] img, err, cacheType, imageURL in
             guard let self else { return }
             self._jobs_runOnMain { btn in
+                guard btn._jobs_sdIsCurrentForegroundToken(token, for: state) else { return }
                 let nsErr = err as NSError?
                 let isCancelled = (nsErr?.domain == SDWebImageErrorDomain && nsErr?.code == SDWebImageError.cancelled.rawValue)
-                if isCancelled { return }
+                if isCancelled {
+                    // ✅ 取消也算“请求结束”：停 shimmer；不覆盖新请求（token 已保证）
+                    btn._jobs_stopForegroundShimmer()
+                    btn._jobs_forceSetForegroundImage(cfg.placeholder, for: state)
+                    cfg.completed?(img, err, cacheType, imageURL)
+                    return
+                }
                 if let img {
-                    // ✅ Success：停 shimmer，显示最终图
+                    // ✅ Success：请求结束，停 shimmer，显示最终图
                     btn._jobs_stopForegroundShimmer()
                     // 如果是新下载（非缓存），做一次淡入；缓存命中则直接显示更干净
                     if cacheType == .none {
@@ -262,11 +287,9 @@ public extension UIButton {
                         btn._jobs_forceSetForegroundImage(img, for: state)
                     }
                 } else {
-                    // ✅ Failure：有兜底图才落兜底；否则继续 shimmer
-                    if let fb = cfg.placeholder {
-                        btn._jobs_stopForegroundShimmer()
-                        btn._jobs_forceSetForegroundImage(fb, for: state)
-                    }
+                    // ✅ Failure：请求结束，必须停 shimmer；有兜底图就落兜底；没有就保持 nil
+                    btn._jobs_stopForegroundShimmer()
+                    btn._jobs_forceSetForegroundImage(cfg.placeholder, for: state)
                 }
                 cfg.completed?(img, err, cacheType, imageURL)
             }

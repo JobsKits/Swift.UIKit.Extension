@@ -121,11 +121,32 @@ private extension UIButton {
             }
         }
     }
+
+    // MARK: - Foreground load token（解决：旧请求回调/取消回调把新请求的 shimmer 停掉）
+    private enum _JobsKFButtonTokenAOKey { static var fgTokenMap: UInt8 = 0 }
+
+    func _jobs_kfNextForegroundToken(for state: UIControl.State) -> Int {
+        var map = (objc_getAssociatedObject(self, &_JobsKFButtonTokenAOKey.fgTokenMap) as? [UInt: Int]) ?? [:]
+        let next = (map[state.rawValue] ?? 0) + 1
+        map[state.rawValue] = next
+        objc_setAssociatedObject(self, &_JobsKFButtonTokenAOKey.fgTokenMap, map, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        return next
+    }
+
+    func _jobs_kfIsCurrentForegroundToken(_ token: Int, for state: UIControl.State) -> Bool {
+        let map = (objc_getAssociatedObject(self, &_JobsKFButtonTokenAOKey.fgTokenMap) as? [UInt: Int]) ?? [:]
+        return map[state.rawValue] == token
+    }
+
     // MARK: - Shimmer helpers（loading 占位）
     func _jobs_startForegroundShimmer() {
         let v: UIView = self.imageView ?? self
         v.jobs_startShimmer()
-        DispatchQueue.main.async { [weak v] in v?.jobs_updateShimmerLayout() }
+        // 约束布局常在下一帧才生效，这里多补一次，减少「一开始看不到 shimmer」
+        DispatchQueue.main.async { [weak v] in
+            v?.jobs_updateShimmerLayout()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak v] in v?.jobs_updateShimmerLayout() }
+        }
     }
 
     func _jobs_stopForegroundShimmer() {
@@ -213,24 +234,26 @@ private extension UIButton {
 public extension UIButton {
     func _kf_loadImage(for state: UIControl.State) {
         let cfg = _kf_config
+        let token = _jobs_kfNextForegroundToken(for: state)
         // ✅ 标记实际使用的框架（给 JobsImageCacheCleaner 用）
         self.jobs_imageLoaderKind = .kingfisher
         // ✅ 统一记录：前景 URL + state（供 JobsImageCacheCleaner 遍历重下）
         self.jobs_remoteState = state
         // ✅ Loading：永远先 Shimmer（placeholder 只作为「失败兜底」）
         _jobs_runOnMain { btn in
+            guard btn._jobs_kfIsCurrentForegroundToken(token, for: state) else { return }
             btn._jobs_forceSetForegroundImage(nil, for: state)
             btn._jobs_startForegroundShimmer()
         }
         guard let url = cfg.url else {
             self.jobs_remoteURL = nil
-            // URL 解析失败也视为失败：有兜底图则显示兜底并停 shimmer；否则继续 shimmer
-            if let fb = cfg.placeholder {
-                _jobs_runOnMain { btn in
-                    btn._jobs_stopForegroundShimmer()
-                    btn._jobs_forceSetForegroundImage(fb, for: state)
-                }
-            };return
+            // URL 解析失败也视为失败：✅ 结束 shimmer（包含失败）
+            _jobs_runOnMain { btn in
+                guard btn._jobs_kfIsCurrentForegroundToken(token, for: state) else { return }
+                btn._jobs_stopForegroundShimmer()
+                btn._jobs_forceSetForegroundImage(cfg.placeholder, for: state)
+            }
+            return
         }
         self.jobs_remoteURL = url
         // ✅ 目标尺寸：优先你显式设置的 targetSize，否则按 UI 猜一个兜底值
@@ -245,16 +268,15 @@ public extension UIButton {
                          progressBlock: { r, t in cfg.progress?(Int64(r), Int64(t)) }) { [weak self] result in
             guard let self else { return }
             self._jobs_runOnMain { btn in
+                guard btn._jobs_kfIsCurrentForegroundToken(token, for: state) else { return }
+                // ✅ 请求结束（成功/失败/取消）都必须停 shimmer
+                btn._jobs_stopForegroundShimmer()
                 switch result {
                 case .success(let r):
-                    btn._jobs_stopForegroundShimmer()
                     btn._jobs_forceSetForegroundImage(r.image, for: state)
                 case .failure:
-                    // ✅ Failure：有兜底图才落兜底；否则继续 shimmer
-                    if let fb = cfg.placeholder {
-                        btn._jobs_stopForegroundShimmer()
-                        btn._jobs_forceSetForegroundImage(fb, for: state)
-                    }
+                    // ✅ Failure：有兜底图就落兜底；没有就保持 nil
+                    btn._jobs_forceSetForegroundImage(cfg.placeholder, for: state)
                 }
                 cfg.completed?(result)
             }

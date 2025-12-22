@@ -30,6 +30,39 @@ import AppKit
 import UIKit
 #endif
 import ObjectiveC
+// MARK: - 自动跟随布局更新（无需子类化）
+// 说明：很多时候 startShimmer 发生在 AutoLayout 真正出 frame 之前（bounds=0），
+// 如果外部又无法在 layoutSubviews / viewDidLayoutSubviews 里手动调用 update，
+// 那么 shimmer 可能永远不会“启动”。
+//
+// 这里通过轻量 swizzle UIView.layoutSubviews：
+// - 仅当 view 正在 shimmer 时才调用 jobs_updateShimmerLayout()
+// - 外部无需子类化 UIButton / UIView
+private enum JobsShimmerSwizzle {
+    static let once: Void = {
+        let cls: AnyClass = UIView.self
+        let originalSel = #selector(UIView.layoutSubviews)
+        let swizzledSel = #selector(UIView.jobs_shimmer_layoutSubviews)
+        guard let original = class_getInstanceMethod(cls, originalSel),
+              let swizzled = class_getInstanceMethod(cls, swizzledSel) else {
+            return
+        }
+        method_exchangeImplementations(original, swizzled)
+    }()
+}
+
+private extension UIView {
+    static func jobs_enableShimmerAutoLayoutUpdatesOnce() {
+        _ = JobsShimmerSwizzle.once
+    }
+
+    @objc func jobs_shimmer_layoutSubviews() {
+        // 注意：交换实现后，这里调用的是“原始 layoutSubviews”
+        self.jobs_shimmer_layoutSubviews()
+        guard jobs_isShimmeringStored else { return }
+        jobs_updateShimmerLayout()
+    }
+}
 // MARK: - 配置对象
 public struct JobsShimmerConfig {
     public var baseColor: UIColor
@@ -187,9 +220,7 @@ private extension UIView {
 
     func jobs_updateShimmerColors() {
         guard let layer = jobs_shimmerLayer else { return }
-
         let cfg = jobs_shimmerConfig
-
         // 动态色支持：resolvedColor(with:) 可跟随暗黑模式变化
         let base = cfg.baseColor.resolvedColor(with: traitCollection)
         let highlight = cfg.highlightColor.resolvedColor(with: traitCollection)
@@ -262,6 +293,8 @@ public extension UIView {
     }
     /// 开始呼吸效果
     func jobs_startShimmer(config: JobsShimmerConfig = .default) {
+        // ✅ 无需子类化：自动跟随布局变化刷新 shimmer layer frame
+        UIView.jobs_enableShimmerAutoLayoutUpdatesOnce()
         // 记录原始状态（仅首次开启时记录，stop 时会清理）
         if jobs_originalClipsToBounds == nil {
             jobs_originalClipsToBounds = clipsToBounds
@@ -346,8 +379,7 @@ public extension UIView {
             jobs_startShimmer(config: config)
         } else {
             jobs_stopShimmer()
-        }
-        return self
+        };return self
     }
     /// DSL：修改呼吸颜色（不改变开关状态）
     @discardableResult

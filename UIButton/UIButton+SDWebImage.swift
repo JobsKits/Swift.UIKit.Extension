@@ -114,16 +114,13 @@ private extension UIButton {
         return map[state.rawValue] == token
     }
     // MARK: - Shimmer helpers（loading 占位）
-    func _jobs_startForegroundShimmer() {
-        let v: UIView = self.imageView ?? self
-        v.jobs_startShimmer()
-        DispatchQueue.main.async { [weak v] in v?.jobs_updateShimmerLayout() }
-    }
+func _jobs_startForegroundShimmer(targetSize: CGSize) {
+    self._jobs_startForegroundShimmerOverlay(targetSize: targetSize)
+}
 
-    func _jobs_stopForegroundShimmer() {
-        let v: UIView = self.imageView ?? self
-        v.jobs_stopShimmer()
-    }
+func _jobs_stopForegroundShimmer() {
+    self._jobs_stopForegroundShimmerOverlay()
+}
 
     func _jobs_startBackgroundShimmer() {
         self.jobs_startShimmer()
@@ -145,6 +142,12 @@ private extension UIButton {
             let side = max(24, h - 16)
             return CGSize(width: side, height: side)
         };return CGSize(width: 48, height: 48)
+    }
+
+    // MARK: - Foreground loading placeholder（用于撑开 imageView frame，便于 overlay 精准覆盖）
+    func _jobs_sdLoadingPlaceholderImage(targetPointSize: CGSize, fallback: UIImage?) -> UIImage? {
+        if let fallback { return fallback }
+        return UIImage._jobs_transparentPlaceholder(size: targetPointSize)
     }
 
     func _jobs_sdGuessBackgroundTargetSize() -> CGSize {
@@ -213,6 +216,19 @@ private extension UIButton {
     }
 }
 
+// MARK: - Transparent placeholder (internal)
+private extension UIImage {
+    static func _jobs_transparentPlaceholder(size: CGSize,
+                                            scale: CGFloat = UIScreen.main.scale) -> UIImage {
+        let w = max(1, size.width)
+        let h = max(1, size.height)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = scale
+        format.opaque = false
+        return UIGraphicsImageRenderer(size: CGSize(width: w, height: h), format: format).image { _ in }
+    }
+}
+
 public extension UIButton {
     // MARK: - 前景图（SDWebImage）
     func _sd_loadImage(for state: UIControl.State) {
@@ -222,16 +238,14 @@ public extension UIButton {
         self.jobs_imageLoaderKind = .sdwebimage
         // ✅ 记录：前景 state / url（供 JobsImageCacheCleaner 遍历重下）
         self.jobs_remoteState = state
-        // ✅ Loading：永远先 Shimmer（placeholder 只作为「失败兜底」）
-        _jobs_runOnMain { btn in
-            guard btn._jobs_sdIsCurrentForegroundToken(token, for: state) else { return }
-            btn._jobs_forceSetForegroundImage(nil, for: state)
-            btn._jobs_startForegroundShimmer()
-        }
+        // ✅ 目标尺寸：优先你显式设置的 targetSize，否则按 UI 猜一个兜底值（用于 shimmer overlay + thumbnail 下采样）
+        let targetPointSize = cfg.targetSize ?? _jobs_sdGuessForegroundTargetSize()
+        self.jobs_remoteImageTargetSize = targetPointSize
+        let loadingPlaceholder = _jobs_sdLoadingPlaceholderImage(targetPointSize: targetPointSize, fallback: cfg.placeholder)
 
         guard let url = cfg.url else {
             self.jobs_remoteURL = nil
-            // URL 解析失败也视为失败：✅ 结束 shimmer（包含失败）
+            // URL 解析失败也视为失败：直接落兜底（不需要 shimmer）
             _jobs_runOnMain { btn in
                 guard btn._jobs_sdIsCurrentForegroundToken(token, for: state) else { return }
                 btn._jobs_stopForegroundShimmer()
@@ -240,9 +254,16 @@ public extension UIButton {
             return
         }
         self.jobs_remoteURL = url
-        // ✅ 目标尺寸：优先你显式设置的 targetSize，否则按 UI 猜一个兜底值
-        let targetPointSize = cfg.targetSize ?? _jobs_sdGuessForegroundTargetSize()
-        self.jobs_remoteImageTargetSize = targetPointSize
+
+        // ✅ 折中策略：先灌入兜底图（或透明占位）把前景 imageView 撑开 → 再盖 overlay 做 shimmer
+        // 这样 overlay 的 frame 可以直接跟随系统最终算出来的 imageView/frame。
+        _jobs_runOnMain { btn in
+            guard btn._jobs_sdIsCurrentForegroundToken(token, for: state) else { return }
+            btn._jobs_forceSetForegroundImage(loadingPlaceholder, for: state)
+            btn.setNeedsLayout()
+            btn.layoutIfNeeded()
+            btn._jobs_startForegroundShimmer(targetSize: targetPointSize)
+        }
         // 取消同 state 的在途请求
         self.sd_cancelImageLoad(for: state)
         // ✅ SD 只在回调里写图：避免 SD 自动写回导致“先被大图撑开，再被你重置”的竞态

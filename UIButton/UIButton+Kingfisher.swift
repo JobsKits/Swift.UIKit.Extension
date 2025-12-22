@@ -139,19 +139,12 @@ private extension UIButton {
     }
 
     // MARK: - Shimmer helpers（loading 占位）
-    func _jobs_startForegroundShimmer() {
-        let v: UIView = self.imageView ?? self
-        v.jobs_startShimmer()
-        // 约束布局常在下一帧才生效，这里多补一次，减少「一开始看不到 shimmer」
-        DispatchQueue.main.async { [weak v] in
-            v?.jobs_updateShimmerLayout()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak v] in v?.jobs_updateShimmerLayout() }
-        }
+    func _jobs_startForegroundShimmer(targetSize: CGSize) {
+        self._jobs_startForegroundShimmerOverlay(targetSize: targetSize)
     }
 
     func _jobs_stopForegroundShimmer() {
-        let v: UIView = self.imageView ?? self
-        v.jobs_stopShimmer()
+        self._jobs_stopForegroundShimmerOverlay()
     }
 
     func _jobs_startBackgroundShimmer() {
@@ -210,6 +203,12 @@ private extension UIButton {
         };return CGSize(width: 48, height: 48)
     }
 
+    // MARK: - Foreground loading placeholder（用于撑开 imageView frame，便于 overlay 精准覆盖）
+    func _jobs_kfLoadingPlaceholderImage(targetPointSize: CGSize, fallback: UIImage?) -> UIImage? {
+        if let fallback { return fallback }
+        return UIImage._jobs_transparentPlaceholder(size: targetPointSize)
+    }
+
     func _jobs_kfGuessBackgroundTargetSize() -> CGSize {
         if let s = self.jobs_bgImageTargetSize, s.width > 1, s.height > 1 { return s }
         let s = self.bounds.size
@@ -231,6 +230,19 @@ private extension UIButton {
     }
 }
 
+// MARK: - Transparent placeholder (internal)
+private extension UIImage {
+    static func _jobs_transparentPlaceholder(size: CGSize,
+                                            scale: CGFloat = UIScreen.main.scale) -> UIImage {
+        let w = max(1, size.width)
+        let h = max(1, size.height)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = scale
+        format.opaque = false
+        return UIGraphicsImageRenderer(size: CGSize(width: w, height: h), format: format).image { _ in }
+    }
+}
+
 public extension UIButton {
     func _kf_loadImage(for state: UIControl.State) {
         let cfg = _kf_config
@@ -239,15 +251,14 @@ public extension UIButton {
         self.jobs_imageLoaderKind = .kingfisher
         // ✅ 统一记录：前景 URL + state（供 JobsImageCacheCleaner 遍历重下）
         self.jobs_remoteState = state
-        // ✅ Loading：永远先 Shimmer（placeholder 只作为「失败兜底」）
-        _jobs_runOnMain { btn in
-            guard btn._jobs_kfIsCurrentForegroundToken(token, for: state) else { return }
-            btn._jobs_forceSetForegroundImage(nil, for: state)
-            btn._jobs_startForegroundShimmer()
-        }
+        // ✅ 目标尺寸：优先你显式设置的 targetSize，否则按 UI 猜一个兜底值（用于 shimmer overlay + downsampling）
+        let targetPointSize = cfg.targetSize ?? _jobs_kfGuessForegroundTargetSize()
+        self.jobs_remoteImageTargetSize = targetPointSize
+        let loadingPlaceholder = _jobs_kfLoadingPlaceholderImage(targetPointSize: targetPointSize, fallback: cfg.placeholder)
+
         guard let url = cfg.url else {
             self.jobs_remoteURL = nil
-            // URL 解析失败也视为失败：✅ 结束 shimmer（包含失败）
+            // URL 解析失败也视为失败：直接落兜底（不需要 shimmer）
             _jobs_runOnMain { btn in
                 guard btn._jobs_kfIsCurrentForegroundToken(token, for: state) else { return }
                 btn._jobs_stopForegroundShimmer()
@@ -255,10 +266,18 @@ public extension UIButton {
             }
             return
         }
+
         self.jobs_remoteURL = url
-        // ✅ 目标尺寸：优先你显式设置的 targetSize，否则按 UI 猜一个兜底值
-        let targetPointSize = cfg.targetSize ?? _jobs_kfGuessForegroundTargetSize()
-        self.jobs_remoteImageTargetSize = targetPointSize
+
+        // ✅ 折中策略：先灌入兜底图（或透明占位）把前景 imageView 撑开 → 再盖 overlay 做 shimmer
+        // 这样 overlay 的 frame 可以直接跟随系统最终算出来的 imageView/frame。
+        _jobs_runOnMain { btn in
+            guard btn._jobs_kfIsCurrentForegroundToken(token, for: state) else { return }
+            btn._jobs_forceSetForegroundImage(loadingPlaceholder, for: state)
+            btn.setNeedsLayout()
+            btn.layoutIfNeeded()
+            btn._jobs_startForegroundShimmer(targetSize: targetPointSize)
+        }
         // ✅ 强制 Downsampling，保证不会被大图撑开 intrinsicContentSize
         let opts = _jobs_kfUpsertDownsampleOptions(cfg.options, targetPointSize: targetPointSize)
         self.kf.setImage(with: url,

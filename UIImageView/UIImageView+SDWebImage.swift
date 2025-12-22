@@ -14,7 +14,7 @@ import UIKit
 import SDWebImage
 public extension UIImageView {
     @discardableResult
-    func sd_setImage(from string: String,
+    func sd_setImage(_ string: String,
                      placeholder: UIImage? = nil,
                      fade: TimeInterval = 0.25) -> Self {
         switch string.imageSource {
@@ -25,10 +25,11 @@ public extension UIImageView {
                 options: [.avoidAutoSetImage]
             ) { [weak self] image, _, _, _ in
                 guard let self = self else { return }
+                let finalImage: UIImage? = image ?? placeholder
                 UIView.transition(with: self,
                                   duration: fade,
                                   options: .transitionCrossDissolve,
-                                  animations: { self.image = image },
+                                  animations: { self.image = finalImage },
                                   completion: nil)
             }
         case .local(let name)?:
@@ -37,7 +38,22 @@ public extension UIImageView {
             image = placeholder
         };return self
     }
-
+    /// 带呼吸效果
+    /// 如果图片URL为空 ==> 执行兜底图
+    /// 如果图片URL不为空，请求阶段是呼吸效果，请求失败 ==> 执行兜底图
+    @discardableResult
+    func byShimmeringAsyncImageSD(
+        _ src: String,
+        placeholder: @autoclosure @escaping @Sendable () -> UIImage
+    ) -> Self {
+        // 关键：用 shimmerConfig 这个 label，确保调用到“带呼吸”的 sd_setImage
+        sd_setImage(_: src,
+                    placeholder: placeholder(),
+                    fade: 0.25,
+                    shimmerConfig: .default)
+        return self
+    }
+    ///
     @discardableResult
     func byAsyncImageSD(
         _ src: String,
@@ -47,19 +63,6 @@ public extension UIImageView {
             let img = await src.sdLoadImage(fallbackImage: fallback())
             image = img
         };return self
-    }
-    /// 带呼吸效果
-    @discardableResult
-    func byShimmeringAsyncImageSD(
-        _ src: String,
-        fallback: @autoclosure @escaping @Sendable () -> UIImage
-    ) -> Self {
-        // 关键：用 shimmerConfig 这个 label，确保调用到“带呼吸”的 sd_setImage
-        sd_setImage(from: src,
-                    placeholder: fallback(),
-                    fade: 0.25,
-                    shimmerConfig: .default)
-        return self
     }
 }
 #endif

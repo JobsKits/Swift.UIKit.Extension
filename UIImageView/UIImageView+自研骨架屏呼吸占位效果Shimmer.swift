@@ -11,6 +11,24 @@ import AppKit
 import UIKit
 #endif
 import ObjectiveC
+// MARK: - Shimmer + 兜底图模式
+/// 你说的两种模式：
+/// 1) 没兜底图：始终 Shimmer（直到成功拿到图）
+/// 2) 有兜底图：请求中 Shimmer；失败后展示兜底图并停止 Shimmer
+public enum JobsShimmerFallbackMode {
+    /// 没兜底图：失败时继续 shimmer
+    case shimmerOnly
+    /// 有兜底图：失败时展示兜底图并停止 shimmer
+    case shimmerThenFallback(UIImage)
+
+    @inline(__always)
+    var fallbackImage: UIImage? {
+        switch self {
+        case .shimmerOnly: return nil
+        case .shimmerThenFallback(let img): return img
+        }
+    }
+}
 
 private enum JobsImageLoadingKeys {
     static var urlKey: UInt8 = 0
@@ -46,6 +64,23 @@ public extension UIImageView {
         jobs_loadingTask = nil
         jobs_loadingURL = nil
     }
+    // MARK: - 内部：统一失败策略
+    /// 失败时：
+    /// - 有兜底图：展示兜底图 + 停止 shimmer
+    /// - 无兜底图：继续 shimmer
+    @inline(__always)
+    func jobs_handleImageLoadFailure(
+        mode: JobsShimmerFallbackMode,
+        shimmerConfig: JobsShimmerConfig
+    ) {
+        if let fallback = mode.fallbackImage {
+            image = fallback
+            jobs_endShimmerLoading()
+        } else {
+            image = nil
+            jobs_beginShimmerLoading(config: shimmerConfig)
+        }
+    }
 }
 // MARK: - SimpleImageLoader
 public extension UIImageView {
@@ -53,9 +88,10 @@ public extension UIImageView {
     @discardableResult
     func jobs_setImageSimple(
         _ src: String?,
-        placeholder: UIImage? = nil,
+        fallback: UIImage? = nil,
         shimmerConfig: JobsShimmerConfig = .default
     ) -> Self {
+        let mode: JobsShimmerFallbackMode = fallback.map { .shimmerThenFallback($0) } ?? .shimmerOnly
         // 没地址：无图态 -> 呼吸
         guard
             let src,
@@ -63,8 +99,7 @@ public extension UIImageView {
         else {
             jobs_cancelSimpleImageTask()
             jobs_remoteURL = nil
-            image = placeholder
-            jobs_beginShimmerLoading(config: shimmerConfig)
+            jobs_handleImageLoadFailure(mode: mode, shimmerConfig: shimmerConfig)
             return self
         }
         jobs_loadingURL = url
@@ -76,7 +111,7 @@ public extension UIImageView {
             return self
         }
         // 请求中：呼吸（你要求“正在请求网络图片数据”也呼吸）
-        image = placeholder
+        image = nil
         jobs_beginShimmerLoading(config: shimmerConfig)
         // 取消旧任务，发起新任务
         jobs_loadingTask?.cancel()
@@ -87,10 +122,18 @@ public extension UIImageView {
                 self.image = img
                 self.jobs_endShimmerLoading()
             } else {
-                // 失败：你要求“请求失败网络图片数据”也继续呼吸
-                self.jobs_beginShimmerLoading(config: shimmerConfig)
+                self.jobs_handleImageLoadFailure(mode: mode, shimmerConfig: shimmerConfig)
             }
         };return self
+    }
+    /// placeholder 在这里等价于“兜底图”（不会在 loading 阶段展示）
+    @discardableResult
+    func jobs_setImageSimple(
+        _ src: String?,
+        placeholder: UIImage? = nil,
+        shimmerConfig: JobsShimmerConfig = .default
+    ) -> Self {
+        jobs_setImageSimple(src, fallback: placeholder, shimmerConfig: shimmerConfig)
     }
 }
 // MARK: - Kingfisher
@@ -100,44 +143,56 @@ public extension UIImageView {
     @discardableResult
     func kf_setImage(
         from string: String,
-        placeholder: UIImage? = nil,
+        fallback: UIImage? = nil,
         fade: TimeInterval = 0.25,
         shimmerConfig: JobsShimmerConfig = .default
     ) -> Self {
+        let mode: JobsShimmerFallbackMode = fallback.map { .shimmerThenFallback($0) } ?? .shimmerOnly
         switch string.imageSource {
         case .remote(let url)?:
             jobs_remoteURL = url
-            // 请求中：呼吸
-            image = placeholder
+            // 请求中：只 shimmer（避免框架 placeholder 行为和 shimmer 叠加）
+            image = nil
             jobs_beginShimmerLoading(config: shimmerConfig)
             // 如果你有复用场景，建议先 cancel
             kf.cancelDownloadTask()
             kf.setImage(
                 with: url,
-                placeholder: placeholder,
+                placeholder: nil,
                 options: [.transition(.fade(fade))]
             ) { [weak self] result in
                 guard let self else { return }
+                guard self.jobs_remoteURL == url else { return }
                 switch result {
                 case .success:
                     // 成功：关呼吸（KF 已经把图 set 进来了）
                     self.jobs_endShimmerLoading()
                 case .failure:
-                    // 失败：继续呼吸
-                    self.jobs_beginShimmerLoading(config: shimmerConfig)
+                    self.jobs_handleImageLoadFailure(mode: mode, shimmerConfig: shimmerConfig)
                 }
             }
         case .local(let name)?:
             jobs_remoteURL = nil
-            image = UIImage(named: name) ?? placeholder
-            // 本地有图：关呼吸
-            if image != nil { jobs_endShimmerLoading() }
-            else { jobs_beginShimmerLoading(config: shimmerConfig) }
+            if let img = UIImage(named: name) {
+                image = img
+                jobs_endShimmerLoading()
+            } else {
+                jobs_handleImageLoadFailure(mode: mode, shimmerConfig: shimmerConfig)
+            }
         case nil:
             jobs_remoteURL = nil
-            image = placeholder
-            jobs_beginShimmerLoading(config: shimmerConfig)
+            jobs_handleImageLoadFailure(mode: mode, shimmerConfig: shimmerConfig)
         };return self
+    }
+    /// placeholder 在这里等价于“兜底图”（不会在 loading 阶段展示）
+    @discardableResult
+    func kf_setImage(
+        from string: String,
+        placeholder: UIImage? = nil,
+        fade: TimeInterval = 0.25,
+        shimmerConfig: JobsShimmerConfig = .default
+    ) -> Self {
+        kf_setImage(from: string, fallback: placeholder, fade: fade, shimmerConfig: shimmerConfig)
     }
 }
 #endif
@@ -148,23 +203,25 @@ public extension UIImageView {
     @discardableResult
     func sd_setImage(
         from string: String,
-        placeholder: UIImage? = nil,
+        fallback: UIImage? = nil,
         fade: TimeInterval = 0.25,
         shimmerConfig: JobsShimmerConfig = .default
     ) -> Self {
+        let mode: JobsShimmerFallbackMode = fallback.map { .shimmerThenFallback($0) } ?? .shimmerOnly
         switch string.imageSource {
         case .remote(let url)?:
             jobs_remoteURL = url
-            image = placeholder
+            image = nil
             jobs_beginShimmerLoading(config: shimmerConfig)
             // 复用场景建议先 cancel
             sd_cancelCurrentImageLoad()
             sd_setImage(
                 with: url,
-                placeholderImage: placeholder,
+                placeholderImage: nil,
                 options: [.avoidAutoSetImage]
             ) { [weak self] image, error, _, _ in
                 guard let self = self else { return }
+                guard self.jobs_remoteURL == url else { return }
 
                 if let image, error == nil {
                     UIView.transition(
@@ -176,22 +233,34 @@ public extension UIImageView {
                     )
                     self.jobs_endShimmerLoading()
                 } else {
-                    // 失败：继续呼吸
-                    self.jobs_beginShimmerLoading(config: shimmerConfig)
+                    self.jobs_handleImageLoadFailure(mode: mode, shimmerConfig: shimmerConfig)
                 }
             }
 
         case .local(let name)?:
             jobs_remoteURL = nil
-            image = UIImage(named: name) ?? placeholder
-            if image != nil { jobs_endShimmerLoading() }
-            else { jobs_beginShimmerLoading(config: shimmerConfig) }
+            if let img = UIImage(named: name) {
+                image = img
+                jobs_endShimmerLoading()
+            } else {
+                jobs_handleImageLoadFailure(mode: mode, shimmerConfig: shimmerConfig)
+            }
 
         case nil:
             jobs_remoteURL = nil
-            image = placeholder
-            jobs_beginShimmerLoading(config: shimmerConfig)
+            jobs_handleImageLoadFailure(mode: mode, shimmerConfig: shimmerConfig)
         };return self
+    }
+
+    /// placeholder 在这里等价于“兜底图”（不会在 loading 阶段展示）
+    @discardableResult
+    func sd_setImage(
+        _ string: String,
+        placeholder: UIImage? = nil,
+        fade: TimeInterval = 0.25,
+        shimmerConfig: JobsShimmerConfig = .default
+    ) -> Self {
+        sd_setImage(from: string, fallback: placeholder, fade: fade, shimmerConfig: shimmerConfig)
     }
 }
 #endif

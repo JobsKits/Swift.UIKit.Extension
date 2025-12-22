@@ -58,7 +58,7 @@ public extension UIViewController {
     @objc private func _nb_viewWillDisappear(_ animated: Bool) {
         _nb_viewWillDisappear(animated) // 调原实现
         if let _ = objc_getAssociatedObject(self, &_nbHiddenKey) {
-            // 只在你启用了 lifecycle 时还原
+            // 只在启用了 lifecycle 时还原
             navigationController?.setNavigationBarHidden(false, animated: true)
         }
     }

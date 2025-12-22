@@ -122,7 +122,7 @@ public extension UIViewController {
                 };return self
             }
         }
-        // 2) 没有导航栈：包一层 Nav 再 present（保持你原有语义）
+        // 2) 没有导航栈：包一层 Nav 再 present（保持原有语义）
         let wrapped = self.jobsNavContainer
             .byNavigationBarHidden(true)
             .byModalPresentationStyle(.fullScreen)
@@ -152,7 +152,7 @@ public extension UIViewController {
             }
         };return self
     }
-    // ======================= 兼容旧签名（可留可删，不影响你现在用法） =======================
+    // ======================= 兼容旧签名（可留可删，不影响现在用法） =======================
     /// 旧签名：允许显式传方向；内部转为“临时设置方向再调用 byPush”
     @discardableResult
     func byPush(_ from: UIResponder?,

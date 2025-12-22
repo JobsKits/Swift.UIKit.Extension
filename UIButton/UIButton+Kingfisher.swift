@@ -110,6 +110,72 @@ public extension UIButton {
 }
 // MARK: - internal helpers
 private extension UIButton {
+    /// ✅ 统一主线程执行：避免占位/回调乱序覆盖
+    func _jobs_runOnMain(_ work: @escaping (UIButton) -> Void) {
+        if Thread.isMainThread {
+            work(self)
+        } else {
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                work(self)
+            }
+        }
+    }
+    // MARK: - Shimmer helpers（loading 占位）
+    func _jobs_startForegroundShimmer() {
+        let v: UIView = self.imageView ?? self
+        v.jobs_startShimmer()
+        DispatchQueue.main.async { [weak v] in v?.jobs_updateShimmerLayout() }
+    }
+
+    func _jobs_stopForegroundShimmer() {
+        let v: UIView = self.imageView ?? self
+        v.jobs_stopShimmer()
+    }
+
+    func _jobs_startBackgroundShimmer() {
+        self.jobs_startShimmer()
+        DispatchQueue.main.async { [weak self] in self?.jobs_updateShimmerLayout() }
+    }
+
+    func _jobs_stopBackgroundShimmer() {
+        self.jobs_stopShimmer()
+    }
+    /// ✅ 强制写入“前景图”（避免 jobsResetBtnImage 内部的保护挡掉更新）
+    func _jobs_forceSetForegroundImage(_ image: UIImage?, for state: UIControl.State) {
+        self.jobsResetBtnImage(image, for: state)
+
+        if #available(iOS 15.0, *), state == .normal, var cfg = self.configuration {
+            let current = cfg.image
+            if (current !== image) && !(current == nil && image == nil) {
+                cfg.image = image
+                self.configuration = cfg
+            }
+        } else {
+            let current = self.image(for: state)
+            if (current !== image) && !(current == nil && image == nil) {
+                self.setImage(image, for: state)
+            }
+        }
+    }
+    /// ✅ 强制写入“背景图”（逻辑同上）
+    func _jobs_forceSetBackgroundImage(_ image: UIImage?, for state: UIControl.State) {
+        self.jobsResetBtnBgImage(image, for: state)
+
+        if #available(iOS 15.0, *), state == .normal, var cfg = self.configuration {
+            let current = cfg.background.image
+            if (current !== image) && !(current == nil && image == nil) {
+                cfg.background.image = image
+                self.configuration = cfg
+            }
+        } else {
+            let current = self.backgroundImage(for: state)
+            if (current !== image) && !(current == nil && image == nil) {
+                self.setBackgroundImage(image, for: state)
+            }
+        }
+    }
+
     func _jobs_kfGuessForegroundTargetSize() -> CGSize {
         if let s = self.jobs_remoteImageTargetSize, s.width > 1, s.height > 1 { return s }
         if let iv = self.imageView {
@@ -151,13 +217,20 @@ public extension UIButton {
         self.jobs_imageLoaderKind = .kingfisher
         // ✅ 统一记录：前景 URL + state（供 JobsImageCacheCleaner 遍历重下）
         self.jobs_remoteState = state
-        // 先顶上占位，避免布局时被旧图撑开
-        if let ph = cfg.placeholder {
-            Task { @MainActor in self.jobsResetBtnImage(ph, for: state) }
+        // ✅ Loading：永远先 Shimmer（placeholder 只作为「失败兜底」）
+        _jobs_runOnMain { btn in
+            btn._jobs_forceSetForegroundImage(nil, for: state)
+            btn._jobs_startForegroundShimmer()
         }
         guard let url = cfg.url else {
             self.jobs_remoteURL = nil
-            return
+            // URL 解析失败也视为失败：有兜底图则显示兜底并停 shimmer；否则继续 shimmer
+            if let fb = cfg.placeholder {
+                _jobs_runOnMain { btn in
+                    btn._jobs_stopForegroundShimmer()
+                    btn._jobs_forceSetForegroundImage(fb, for: state)
+                }
+            };return
         }
         self.jobs_remoteURL = url
         // ✅ 目标尺寸：优先你显式设置的 targetSize，否则按 UI 猜一个兜底值
@@ -167,14 +240,21 @@ public extension UIButton {
         let opts = _jobs_kfUpsertDownsampleOptions(cfg.options, targetPointSize: targetPointSize)
         self.kf.setImage(with: url,
                          for: state,
-                         placeholder: cfg.placeholder,
+                         placeholder: nil,
                          options: opts,
                          progressBlock: { r, t in cfg.progress?(Int64(r), Int64(t)) }) { [weak self] result in
             guard let self else { return }
-            Task { @MainActor in
+            self._jobs_runOnMain { btn in
                 switch result {
-                case .success(let r): self.jobsResetBtnImage(r.image, for: state)
-                case .failure:        self.jobsResetBtnImage(cfg.placeholder, for: state)
+                case .success(let r):
+                    btn._jobs_stopForegroundShimmer()
+                    btn._jobs_forceSetForegroundImage(r.image, for: state)
+                case .failure:
+                    // ✅ Failure：有兜底图才落兜底；否则继续 shimmer
+                    if let fb = cfg.placeholder {
+                        btn._jobs_stopForegroundShimmer()
+                        btn._jobs_forceSetForegroundImage(fb, for: state)
+                    }
                 }
                 cfg.completed?(result)
             }
@@ -190,22 +270,26 @@ public extension UIButton {
         self.jobs_bgURL = cfg.url
         self.jobs_bgState = state
         self.kf_bgURL = cfg.url
-        // 先立即显示占位
-        if let ph = cfg.placeholder {
-            Task { @MainActor in self.jobsResetBtnBgImage(ph, for: state) }
+        // ✅ Loading：永远先 Shimmer（placeholder 只作为「失败兜底」）
+        _jobs_runOnMain { btn in
+            btn._jobs_forceSetBackgroundImage(nil, for: state)
+            btn._jobs_startBackgroundShimmer()
         }
-        guard let url = cfg.url else { return }
+        guard let url = cfg.url else {
+            // URL 解析失败也视为失败：有兜底图则显示兜底并停 shimmer；否则继续 shimmer
+            if let fb = cfg.placeholder {
+                _jobs_runOnMain { btn in
+                    btn._jobs_stopBackgroundShimmer()
+                    btn._jobs_forceSetBackgroundImage(fb, for: state)
+                }
+            };return
+        }
         // ✅ 背景图目标尺寸
         let targetPointSize = cfg.bgTargetSize ?? _jobs_kfGuessBackgroundTargetSize()
         self.jobs_bgImageTargetSize = targetPointSize
         var opts = _jobs_kfUpsertDownsampleOptions(cfg.options, targetPointSize: targetPointSize)
-        // 原逻辑：占位存在就移除 keepCurrentImageWhileLoading，避免两层叠图
-        if cfg.placeholder != nil {
-            opts.removeAll { if case .keepCurrentImageWhileLoading = $0 { return true } else { return false } }
-        } else if !opts.contains(where: { if case .keepCurrentImageWhileLoading = $0 { return true } else { return false } }) {
-            opts.append(.keepCurrentImageWhileLoading)
-        }
-
+        // ✅ Shimmer 占位：不保留旧图，避免复用/叠图透出
+        opts.removeAll { if case .keepCurrentImageWhileLoading = $0 { return true } else { return false } }
         if !opts.contains(where: { if case .backgroundDecode = $0 { return true } else { return false } }) {
             opts.append(.backgroundDecode)
         }
@@ -213,17 +297,26 @@ public extension UIButton {
         self.kf.setBackgroundImage(
             with: url,
             for: state,
-            placeholder: cfg.placeholder,
+            placeholder: nil,
             options: opts,
             progressBlock: { r, t in cfg.progress?(Int64(r), Int64(t)) }
         ) { [weak self] result in
             guard let self else { return }
-            Task { @MainActor in
-                switch result {
-                case .success(let s): self.jobsResetBtnBgImage(s.image, for: state)
-                case .failure:        self.jobsResetBtnBgImage(cfg.placeholder, for: state)
+            Task { @MainActor [weak self] in
+                self?._jobs_runOnMain { btn in
+                    switch result {
+                    case .success(let s):
+                        btn._jobs_stopBackgroundShimmer()
+                        btn._jobs_forceSetBackgroundImage(s.image, for: state)
+                    case .failure:
+                        // ✅ Failure：有兜底图才落兜底；否则继续 shimmer
+                        if let fb = cfg.placeholder {
+                            btn._jobs_stopBackgroundShimmer()
+                            btn._jobs_forceSetBackgroundImage(fb, for: state)
+                        }
+                    }
+                    cfg.completed?(result)
                 }
-                cfg.completed?(result)
             }
         }
     }

@@ -97,6 +97,26 @@ private extension UIButton {
             }
         }
     }
+    // MARK: - Shimmer helpers（loading 占位）
+    func _jobs_startForegroundShimmer() {
+        let v: UIView = self.imageView ?? self
+        v.jobs_startShimmer()
+        DispatchQueue.main.async { [weak v] in v?.jobs_updateShimmerLayout() }
+    }
+
+    func _jobs_stopForegroundShimmer() {
+        let v: UIView = self.imageView ?? self
+        v.jobs_stopShimmer()
+    }
+
+    func _jobs_startBackgroundShimmer() {
+        self.jobs_startShimmer()
+        DispatchQueue.main.async { [weak self] in self?.jobs_updateShimmerLayout() }
+    }
+
+    func _jobs_stopBackgroundShimmer() {
+        self.jobs_stopShimmer()
+    }
 
     func _jobs_sdGuessForegroundTargetSize() -> CGSize {
         if let s = self.jobs_remoteImageTargetSize, s.width > 1, s.height > 1 { return s }
@@ -120,7 +140,6 @@ private extension UIButton {
 
     func _jobs_sdBuildContext(base: [SDWebImageContextOption: Any]?, targetPointSize: CGSize?) -> [SDWebImageContextOption: Any] {
         var ctx = base ?? [:]
-
         if ctx[.imageScaleFactor] == nil {
             ctx[.imageScaleFactor] = UIScreen.main.scale
         }
@@ -145,7 +164,6 @@ private extension UIButton {
     func _jobs_forceSetForegroundImage(_ image: UIImage?, for state: UIControl.State) {
         // 1) 先走你现有的统一封装（保证你的配置/布局逻辑不丢）
         self.jobsResetBtnImage(image, for: state)
-
         // 2) 如果 jobsReset 内部做了“已有 image 不覆盖”，这里强制补写
         if #available(iOS 15.0, *), state == .normal, var cfg = self.configuration {
             let current = cfg.image
@@ -187,21 +205,22 @@ public extension UIButton {
         self.jobs_imageLoaderKind = .sdwebimage
         // ✅ 记录：前景 state / url（供 JobsImageCacheCleaner 遍历重下）
         self.jobs_remoteState = state
-        // ✅ 先“同步/主线程”顶占位：不要用 Task，避免缓存命中时乱序覆盖最终图
-        if let ph = cfg.placeholder {
-            _jobs_runOnMain { btn in
-                // 只有“没有任何图”的时候才顶占位，避免覆盖已有图
-                if btn.image(for: state) == nil {
-                    btn._jobs_forceSetForegroundImage(ph, for: state)
-                }
-            }
+        // ✅ Loading：永远先 Shimmer（placeholder 只作为「失败兜底」）
+        _jobs_runOnMain { btn in
+            btn._jobs_forceSetForegroundImage(nil, for: state)
+            btn._jobs_startForegroundShimmer()
         }
 
         guard let url = cfg.url else {
             self.jobs_remoteURL = nil
-            return
+            // URL 解析失败也视为失败：有兜底图则显示兜底并停 shimmer；否则继续 shimmer
+            if let fb = cfg.placeholder {
+                _jobs_runOnMain { btn in
+                    btn._jobs_stopForegroundShimmer()
+                    btn._jobs_forceSetForegroundImage(fb, for: state)
+                }
+            };return
         }
-
         self.jobs_remoteURL = url
         // ✅ 目标尺寸：优先你显式设置的 targetSize，否则按 UI 猜一个兜底值
         let targetPointSize = cfg.targetSize ?? _jobs_sdGuessForegroundTargetSize()
@@ -214,13 +233,11 @@ public extension UIButton {
         opts.insert(.highPriority)
         opts.insert(.scaleDownLargeImages)
         opts.insert(.avoidAutoSetImage)
-
         let ctx = _jobs_sdBuildContext(base: cfg.context, targetPointSize: targetPointSize)
-
         self.sd_setImage(
             with: url,
             for: state,
-            placeholderImage: cfg.placeholder,
+            placeholderImage: nil,
             options: opts,
             context: ctx,
             progress: cfg.progress
@@ -230,21 +247,27 @@ public extension UIButton {
                 let nsErr = err as NSError?
                 let isCancelled = (nsErr?.domain == SDWebImageErrorDomain && nsErr?.code == SDWebImageError.cancelled.rawValue)
                 if isCancelled { return }
-
-                let finalImage = img ?? cfg.placeholder
-
-                // 如果是新下载（非缓存），做一次淡入；缓存命中则直接显示更干净
-                if cacheType == .none, let finalImage {
-                    UIView.transition(with: btn,
-                                      duration: 0.18,
-                                      options: .transitionCrossDissolve,
-                                      animations: {
-                        btn._jobs_forceSetForegroundImage(finalImage, for: state)
-                    }, completion: nil)
+                if let img {
+                    // ✅ Success：停 shimmer，显示最终图
+                    btn._jobs_stopForegroundShimmer()
+                    // 如果是新下载（非缓存），做一次淡入；缓存命中则直接显示更干净
+                    if cacheType == .none {
+                        UIView.transition(with: btn,
+                                          duration: 0.18,
+                                          options: .transitionCrossDissolve,
+                                          animations: {
+                            btn._jobs_forceSetForegroundImage(img, for: state)
+                        }, completion: nil)
+                    } else {
+                        btn._jobs_forceSetForegroundImage(img, for: state)
+                    }
                 } else {
-                    btn._jobs_forceSetForegroundImage(finalImage, for: state)
+                    // ✅ Failure：有兜底图才落兜底；否则继续 shimmer
+                    if let fb = cfg.placeholder {
+                        btn._jobs_stopForegroundShimmer()
+                        btn._jobs_forceSetForegroundImage(fb, for: state)
+                    }
                 }
-
                 cfg.completed?(img, err, cacheType, imageURL)
             }
         }
@@ -257,15 +280,21 @@ public extension UIButton {
         // 记录元数据（克隆/复用要用）
         self.jobs_bgURL = cfg.url
         self.jobs_bgState = state
-        // ✅ 先“同步/主线程”顶占位：不要用 Task，避免缓存命中时乱序覆盖最终图
-        if let ph = cfg.placeholder {
-            _jobs_runOnMain { btn in
-                if btn.backgroundImage(for: state) == nil {
-                    btn._jobs_forceSetBackgroundImage(ph, for: state)
-                }
-            }
+        // ✅ Loading：永远先 Shimmer（placeholder 只作为「失败兜底」）
+        _jobs_runOnMain { btn in
+            btn._jobs_forceSetBackgroundImage(nil, for: state)
+            btn._jobs_startBackgroundShimmer()
         }
-        guard let url = cfg.url else { return }
+
+        guard let url = cfg.url else {
+            // URL 解析失败也视为失败：有兜底图则显示兜底并停 shimmer；否则继续 shimmer
+            if let fb = cfg.placeholder {
+                _jobs_runOnMain { btn in
+                    btn._jobs_stopBackgroundShimmer()
+                    btn._jobs_forceSetBackgroundImage(fb, for: state)
+                }
+            };return
+        }
         // ✅ 目标尺寸：背景优先显式设置，否则按按钮 bounds 兜底
         let targetPointSize = cfg.bgTargetSize ?? _jobs_sdGuessBackgroundTargetSize()
         self.jobs_bgImageTargetSize = targetPointSize
@@ -281,30 +310,37 @@ public extension UIButton {
         self.sd_setBackgroundImage(
             with: url,
             for: state,
-            placeholderImage: cfg.placeholder,
+            placeholderImage: nil,
             options: opts,
             context: ctx,
             progress: cfg.progress
         ) { [weak self] img, err, cacheType, _ in
             guard let self else { return }
-
             self._jobs_runOnMain { btn in
                 let nsErr = err as NSError?
                 let isCancelled = (nsErr?.domain == SDWebImageErrorDomain && nsErr?.code == SDWebImageError.cancelled.rawValue)
                 if isCancelled { return }
 
-                let finalImage = img ?? cfg.placeholder
-
-                // 如果是新下载（非缓存），做一次淡入；缓存命中则直接显示更干净
-                if cacheType == .none, let finalImage {
-                    UIView.transition(with: btn,
-                                      duration: 0.22,
-                                      options: .transitionCrossDissolve,
-                                      animations: {
-                        btn._jobs_forceSetBackgroundImage(finalImage, for: state)
-                    }, completion: nil)
+                if let img {
+                    // ✅ Success：停 shimmer，显示最终图
+                    btn._jobs_stopBackgroundShimmer()
+                    // 如果是新下载（非缓存），做一次淡入；缓存命中则直接显示更干净
+                    if cacheType == .none {
+                        UIView.transition(with: btn,
+                                          duration: 0.22,
+                                          options: .transitionCrossDissolve,
+                                          animations: {
+                            btn._jobs_forceSetBackgroundImage(img, for: state)
+                        }, completion: nil)
+                    } else {
+                        btn._jobs_forceSetBackgroundImage(img, for: state)
+                    }
                 } else {
-                    btn._jobs_forceSetBackgroundImage(finalImage, for: state)
+                    // ✅ Failure：有兜底图才落兜底；否则继续 shimmer
+                    if let fb = cfg.placeholder {
+                        btn._jobs_stopBackgroundShimmer()
+                        btn._jobs_forceSetBackgroundImage(fb, for: state)
+                    }
                 }
                 cfg.completed?(img, err, cacheType, url)
             }
@@ -374,8 +410,7 @@ public extension UIButton {
         target._sd_setContext(snapCfg.context)
         target._sd_setProgress(snapCfg.progress)
         target._sd_setCompleted(snapCfg.completed)
-
-        // 用你已有的淡入版本，真正发起 SD 的背景图加载
+        // 用已有的淡入版本，真正发起 SD 的背景图加载
         target._sd_loadBackgroundImage(for: state)
     }
     /// 克隆“前景图”

@@ -19,12 +19,15 @@ public extension UIImageView {
                      fade: TimeInterval = 0.25) -> Self {
         switch string.imageSource {
         case .remote(let url)?:
+            jobs_remoteURL = url
             kf.setImage(with: url,
                              placeholder: placeholder,
                              options: [.transition(.fade(fade))])
         case .local(let name)?:
+            jobs_remoteURL = nil
             image = UIImage(named: name) ?? placeholder
         case nil:
+            jobs_remoteURL = nil
             image = placeholder
         }
         return self
@@ -35,6 +38,8 @@ public extension UIImageView {
         _ src: String,
         fallback: @autoclosure @escaping @Sendable () -> UIImage
     ) -> Self {
+        // 统一记录 URL，便于 JobsImageCacheCleaner 遍历重下
+        if case .remote(let url)? = src.imageSource { jobs_remoteURL = url } else { jobs_remoteURL = nil }
         Task { @MainActor in
             let img = await src.kfLoadImage(fallbackImage: fallback())
             image = img

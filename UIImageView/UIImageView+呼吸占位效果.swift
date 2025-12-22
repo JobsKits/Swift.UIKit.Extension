@@ -62,11 +62,13 @@ public extension UIImageView {
             let url = URL(string: src)
         else {
             jobs_cancelSimpleImageTask()
+            jobs_remoteURL = nil
             image = placeholder
             jobs_beginShimmerLoading(config: shimmerConfig)
             return self
         }
         jobs_loadingURL = url
+        jobs_remoteURL = url
         // 命中缓存：直接显示 + 关呼吸
         if let cached = SimpleImageLoader.shared.cachedImage(for: url) { // :contentReference[oaicite:6]{index=6}
             image = cached
@@ -104,6 +106,7 @@ public extension UIImageView {
     ) -> Self {
         switch string.imageSource {
         case .remote(let url)?:
+            jobs_remoteURL = url
             // 请求中：呼吸
             image = placeholder
             jobs_beginShimmerLoading(config: shimmerConfig)
@@ -125,11 +128,13 @@ public extension UIImageView {
                 }
             }
         case .local(let name)?:
+            jobs_remoteURL = nil
             image = UIImage(named: name) ?? placeholder
             // 本地有图：关呼吸
             if image != nil { jobs_endShimmerLoading() }
             else { jobs_beginShimmerLoading(config: shimmerConfig) }
         case nil:
+            jobs_remoteURL = nil
             image = placeholder
             jobs_beginShimmerLoading(config: shimmerConfig)
         };return self
@@ -149,6 +154,7 @@ public extension UIImageView {
     ) -> Self {
         switch string.imageSource {
         case .remote(let url)?:
+            jobs_remoteURL = url
             image = placeholder
             jobs_beginShimmerLoading(config: shimmerConfig)
 
@@ -178,11 +184,13 @@ public extension UIImageView {
             }
 
         case .local(let name)?:
+            jobs_remoteURL = nil
             image = UIImage(named: name) ?? placeholder
             if image != nil { jobs_endShimmerLoading() }
             else { jobs_beginShimmerLoading(config: shimmerConfig) }
 
         case nil:
+            jobs_remoteURL = nil
             image = placeholder
             jobs_beginShimmerLoading(config: shimmerConfig)
         };return self

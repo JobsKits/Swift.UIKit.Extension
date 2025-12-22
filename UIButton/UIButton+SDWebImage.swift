@@ -9,12 +9,10 @@ import AppKit
 #elseif os(iOS) || os(tvOS)
 import UIKit
 #endif
+import ObjectiveC.runtime
 // MARK: - SDWebImage
 #if canImport(SDWebImage)
-import UIKit
 import SDWebImage
-import ObjectiveC.runtime
-
 public struct SDButtonLoadConfig {
     public var url: URL?
     public var placeholder: UIImage?

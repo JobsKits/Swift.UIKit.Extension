@@ -9,11 +9,10 @@ import AppKit
 #elseif os(iOS) || os(tvOS)
 import UIKit
 #endif
+import ObjectiveC.runtime
 // MARK: - Kingfisher
 #if canImport(Kingfisher)
-import UIKit
 import Kingfisher
-import ObjectiveC.runtime
 
 public struct KFButtonLoadConfig {
     public var url: URL?

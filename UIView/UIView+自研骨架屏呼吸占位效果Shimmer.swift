@@ -1,5 +1,5 @@
 //
-//  UIView+自研骨架屏Shimmer.swift
+//  UIView+自研骨架屏呼吸占位效果Shimmer.swift
 //  JobsSwiftBaseConfigDemo
 //
 //  Created by Jobs on 12/2/25.
@@ -24,7 +24,11 @@
 //  ⚠️ 列表复用建议：cell.prepareForReuse() 里调用 jobs_stopShimmer()，避免残留 layer/动画。
 //  ========================================================================
 
+#if os(OSX)
+import AppKit
+#elseif os(iOS) || os(tvOS)
 import UIKit
+#endif
 import ObjectiveC
 // MARK: - 配置对象
 public struct JobsShimmerConfig {

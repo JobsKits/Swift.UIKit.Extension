@@ -1,5 +1,5 @@
 //
-//  UIImageView+呼吸占位效果.swift
+//  UIImageView+自研骨架屏呼吸占位效果Shimmer.swift
 //  JobsSwiftBaseConfigDemo
 //
 //  Created by Jobs on 12/20/25.
@@ -157,10 +157,8 @@ public extension UIImageView {
             jobs_remoteURL = url
             image = placeholder
             jobs_beginShimmerLoading(config: shimmerConfig)
-
             // 复用场景建议先 cancel
             sd_cancelCurrentImageLoad()
-
             sd_setImage(
                 with: url,
                 placeholderImage: placeholder,

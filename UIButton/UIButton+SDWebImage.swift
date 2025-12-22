@@ -63,7 +63,6 @@ public extension UIButton {
     @discardableResult func sd_completed(_ block: SDExternalCompletionBlock?) -> Self { _sd_setCompleted(block) }
     /// ✅ 目标尺寸（point）：用于下采样（前景图）
     @discardableResult func sd_targetSize(_ size: CGSize?) -> Self { _sd_setTargetSize(size) }
-
     /// ✅ 目标尺寸（point）：用于下采样（背景图）
     @discardableResult func sd_bgTargetSize(_ size: CGSize?) -> Self { _sd_setBgTargetSize(size) }
 
@@ -125,7 +124,6 @@ private extension UIButton {
         if ctx[.imageScaleFactor] == nil {
             ctx[.imageScaleFactor] = UIScreen.main.scale
         }
-
         // ✅ 核心：强制缩略图像素尺寸（避免 image.size 过大导致 UIButton intrinsicContentSize 被撑开）
         if ctx[.imageThumbnailPixelSize] == nil {
             let point = targetPointSize
@@ -135,7 +133,6 @@ private extension UIButton {
             }
         };return ctx
     }
-
     /// ✅ 强制写入“前景图”。
     ///
     /// 你现在的现象是：只要配置了 `.sd_placeholderImage(...)`，按钮就一直停在兜底图；
@@ -163,7 +160,6 @@ private extension UIButton {
             }
         }
     }
-
     /// ✅ 强制写入“背景图”，逻辑同上。
     func _jobs_forceSetBackgroundImage(_ image: UIImage?, for state: UIControl.State) {
         self.jobsResetBtnBgImage(image, for: state)
@@ -187,13 +183,10 @@ public extension UIButton {
     // MARK: - 前景图（SDWebImage）
     func _sd_loadImage(for state: UIControl.State) {
         let cfg = _sd_config
-
         // ✅ 标记实际使用的框架（给 JobsImageCacheCleaner 用）
         self.jobs_imageLoaderKind = .sdwebimage
-
         // ✅ 记录：前景 state / url（供 JobsImageCacheCleaner 遍历重下）
         self.jobs_remoteState = state
-
         // ✅ 先“同步/主线程”顶占位：不要用 Task，避免缓存命中时乱序覆盖最终图
         if let ph = cfg.placeholder {
             _jobs_runOnMain { btn in

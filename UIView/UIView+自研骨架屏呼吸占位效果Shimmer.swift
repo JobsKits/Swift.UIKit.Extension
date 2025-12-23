@@ -438,7 +438,8 @@ private extension UIButton {
 
     func jobs_getOrCreateFGOverlayView() -> UIView {
         if let v = jobs_fgShimmerOverlayView { return v }
-        let v = UIView()
+        // overlay 尺寸/位置完全由 jobs_layoutFGOverlayIfNeeded() 决定
+        let v = UIView(frame: .zero)
         v.isUserInteractionEnabled = false
         v.backgroundColor = .clear
         v.isHidden = true
@@ -451,8 +452,8 @@ private extension UIButton {
         let b = self.bounds
         guard b.width > 1, b.height > 1 else { return .zero }
 
-        // ✅ 最优先：直接取 imageView 的最终布局结果（最贴近系统真实呈现）
-        // - 你的「先灌入兜底图撑开」策略下，这里通常能拿到一个稳定的 frame
+        // ✅ 最优先：直接使用 imageView 的最终 frame（最贴近系统真实呈现）
+        // - 在你“先灌兜底图撑开”的策略下，这里通常能拿到稳定 frame
         if let iv = self.imageView {
             let s = iv.bounds.size
             if s.width > 1, s.height > 1 {
@@ -460,19 +461,20 @@ private extension UIButton {
             }
         }
 
-        let content = self.contentRect(forBounds: b)
-        let r = self.imageRect(forContentRect: content)
+        let content = jobs_effectiveContentRect(in: b)
+        guard content.width > 1, content.height > 1 else { return .zero }
 
-        // 能算出 image rect 就用它（有 image / 有配置尺寸时）
-        if r.width > 1, r.height > 1 {
-            return r.integral
+        // 使用 targetSize / currentImage 尺寸兜底（避免调用 iOS15 起 deprecated 的 imageRect/contentRect）
+        var baseSize = targetSize
+        if baseSize.width <= 1 || baseSize.height <= 1, let img = self.currentImage {
+            baseSize = img.size
         }
+        guard baseSize.width > 1, baseSize.height > 1 else { return .zero }
 
-        // 否则用目标尺寸兜底（请求开始时 image=nil，系统可能算不出 imageRect）
-        let w = min(max(targetSize.width, 1), content.width)
-        let h = min(max(targetSize.height, 1), content.height)
+        let w = min(max(baseSize.width, 1), content.width)
+        let h = min(max(baseSize.height, 1), content.height)
 
-        let x: CGFloat
+        var x: CGFloat
         switch self.contentHorizontalAlignment {
         case .right:  x = content.maxX - w
         case .center: x = content.midX - w / 2
@@ -480,7 +482,7 @@ private extension UIButton {
         default:      x = content.minX
         }
 
-        let y: CGFloat
+        var y: CGFloat
         switch self.contentVerticalAlignment {
         case .top:    y = content.minY
         case .bottom: y = content.maxY - h
@@ -488,7 +490,34 @@ private extension UIButton {
         default:      y = content.midY - h / 2
         }
 
-        return CGRect(x: x, y: y, width: w, height: h).integral
+        var rect = CGRect(x: x, y: y, width: w, height: h)
+
+        // legacy：imageEdgeInsets 做个近似偏移（configuration 模式下不走这套）
+        // ⚠️ iOS15+ 直接访问 imageEdgeInsets 会产生 deprecated warning；
+        // 这里改为走你统一的兼容读取（KVC），既保留 legacy 行为，也不污染编译输出。
+        if #available(iOS 15.0, *), self.configuration != nil {
+            // no-op
+        } else {
+            let insets = self.jobs_legacyImageEdgeInsets
+            rect.origin.x += insets.left - insets.right
+            rect.origin.y += insets.top - insets.bottom
+        }
+
+        return rect.integral
+    }
+
+    func jobs_effectiveContentRect(in bounds: CGRect) -> CGRect {
+        if #available(iOS 15.0, *), let cfg = self.configuration {
+            let di = cfg.contentInsets
+            let isRTL = (self.effectiveUserInterfaceLayoutDirection == .rightToLeft)
+            let left = isRTL ? di.trailing : di.leading
+            let right = isRTL ? di.leading : di.trailing
+            return bounds.inset(by: UIEdgeInsets(top: di.top, left: left, bottom: di.bottom, right: right))
+        } else {
+            // ⚠️ iOS15+ 直接访问 contentEdgeInsets 会产生 deprecated warning；
+            // 改为走兼容读取（KVC）。
+            return bounds.inset(by: self.jobs_legacyContentEdgeInsets)
+        }
     }
 
     func jobs_layoutFGOverlayIfNeeded() {
@@ -505,10 +534,8 @@ private extension UIButton {
             overlay.layer.cornerRadius = min(r.height / 2, 12)
         }
         overlay.clipsToBounds = true
-
         // ✅ 兜底：确保 overlay 永远在最上面（避免 UIButton 内部重排子视图后被盖住）
         bringSubviewToFront(overlay)
-
         // 只有在 shimmer 开启时才刷新 shimmer layer
         if overlay.jobs_isShimmering {
             overlay.jobs_updateShimmerLayout()

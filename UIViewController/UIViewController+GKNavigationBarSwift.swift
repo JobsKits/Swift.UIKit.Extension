@@ -24,19 +24,17 @@ public extension UIViewController {
         leftButton: UIButton? = nil,
         rightButtons: [UIButton]? = nil
     ) {
-        // 标题（GK 只吃 String）
         gk_navTitle = title.asString
-        // 左侧按钮：nil → 默认返回；否则用传入的 UIButton
+
         if let btn = leftButton {
             gk_navLeftBarButtonItem = UIBarButtonItem(customView: btn)
         } else {
-            gk_navLeftBarButtonItem = UIBarButtonItem(
-                customView: makeDefaultBackButton()
-            )
+            gk_navLeftBarButtonItem = UIBarButtonItem(customView: makeDefaultBackButton())
         }
-        // 右侧按钮：只有在非空时才创建
+
         if let items = rightButtons, !items.isEmpty {
-//            gk_navRightBarButtonItems = items.map { UIBarButtonItem(customView: $0) }
+            items.forEach { jobs_prepareNavRightButtonSizeIfNeeded($0) }
+            /// 用UIStackView来解决各个子控件的相距问题，以及数据源倒序问题
             gk_navRightBarButtonItems = [UIBarButtonItem(customView: UIStackView(arrangedSubviews: items)
                 .byAxis(.horizontal)
                 .byAlignment(.center)
@@ -47,6 +45,27 @@ public extension UIViewController {
         } else {
             gk_navRightBarButtonItems = nil
         }
+    }
+    // MARK: - rightButtons 默认 size 策略
+    private func jobs_prepareNavRightButtonSizeIfNeeded(_ v: UIView) {
+        #if canImport(SnapKit)
+        let defaultSize = CGSize(width: 44, height: 44)
+
+        if let closure = v.jobsAddConstraintsClosure {
+            // 有自定义 closure：按它来（避免重复约束，用 remake）
+            v.snp.remakeConstraints { make in
+                closure(make)
+            }
+        } else {
+            // 没有：给默认 44×44
+            v.snp.remakeConstraints { make in
+                make.size.equalTo(defaultSize)
+            }
+        }
+        #else
+        // 没 SnapKit 就退化成 frame
+        v.frame = CGRect(x: 0, y: 0, width: 44, height: 44)
+        #endif
     }
     // MARK: - 内置：默认“< 返回”按钮（SF Symbol: chevron.left）
     private func makeDefaultBackButton() -> UIButton {
@@ -82,3 +101,36 @@ public extension UIViewController {
     }
 }
 #endif
+/**
+ jobsSetupGKNav(
+     title: "图片加载",
+     rightButtons: [
+         UIButton.sys()
+             .byTitle("🧹", for: .normal)
+             .byAdd({ make in
+                 make.size.equalTo(CGSize(width: 44, height: 44))
+             })
+             .onTap { _ in
+                /// TODO
+             },
+         UIButton.sys()
+             .byTitle("⬇️", for: .normal)
+             .byAdd({ make in
+                 make.size.equalTo(CGSize(width: 44, height: 44))
+             })
+             .onTap { [weak self] _ in
+                 guard let self else { return }
+                 /// TODO
+             },
+         UIButton.sys()
+             .byTitle(JobsDemoImageURLSwitch.useBadURL ? "🌐❌" : "🌐✅", for: .normal)
+             .byAdd({ make in
+                 make.size.equalTo(CGSize(width: 60, height: 44))
+             })
+             .onTap { [weak self] sender in
+                 guard let self else { return }
+                 /// TODO
+             }
+     ]
+ )
+ */

@@ -114,17 +114,33 @@ private extension UIButton {
         return map[state.rawValue] == token
     }
     // MARK: - Shimmer helpers（loading 占位）
-func _jobs_startForegroundShimmer(targetSize: CGSize) {
-    self._jobs_startForegroundShimmerOverlay(targetSize: targetSize)
-}
+    func _jobs_startForegroundShimmer(targetSize: CGSize) {
+        self._jobs_startForegroundShimmerOverlay(targetSize: targetSize)
+    }
 
-func _jobs_stopForegroundShimmer() {
-    self._jobs_stopForegroundShimmerOverlay()
-}
+    func _jobs_stopForegroundShimmer() {
+        self._jobs_stopForegroundShimmerOverlay()
+    }
 
     func _jobs_startBackgroundShimmer() {
         self.jobs_startShimmer()
-        DispatchQueue.main.async { [weak self] in self?.jobs_updateShimmerLayout() }
+
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+
+            // ✅ 关键：把文字层提到最前，避免被 shimmer overlay 盖住
+            if let tl = self.titleLabel { self.bringSubviewToFront(tl) }
+
+            // 你的 subTitle 很可能也是 UILabel（bySubTitle 添加的），一起提到最前
+            for v in self.subviews where v is UILabel {
+                self.bringSubviewToFront(v)
+            }
+
+            // 如果你按钮还有前景图，也可以一并提到最前（可选）
+            if let iv = self.imageView { self.bringSubviewToFront(iv) }
+
+            self.jobs_updateShimmerLayout()
+        }
     }
 
     func _jobs_stopBackgroundShimmer() {

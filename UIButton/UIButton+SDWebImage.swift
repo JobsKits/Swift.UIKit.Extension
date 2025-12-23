@@ -86,93 +86,6 @@ public extension UIButton {
 }
 // MARK: - internal helpers
 private extension UIButton {
-    /// ✅ 统一主线程执行：避免占位图 Task 乱序覆盖最终图（尤其是缓存命中时回调极快）。
-    func _jobs_runOnMain(_ work: @escaping (UIButton) -> Void) {
-        if Thread.isMainThread {
-            work(self)
-        } else {
-            DispatchQueue.main.async { [weak self] in
-                guard let self else { return }
-                work(self)
-            }
-        }
-    }
-
-    // MARK: - Foreground load token（解决：旧请求回调/取消回调把新请求的 shimmer 停掉）
-    private enum _JobsSDButtonTokenAOKey { static var fgTokenMap: UInt8 = 0 }
-
-    func _jobs_sdNextForegroundToken(for state: UIControl.State) -> Int {
-        var map = (objc_getAssociatedObject(self, &_JobsSDButtonTokenAOKey.fgTokenMap) as? [UInt: Int]) ?? [:]
-        let next = (map[state.rawValue] ?? 0) + 1
-        map[state.rawValue] = next
-        objc_setAssociatedObject(self, &_JobsSDButtonTokenAOKey.fgTokenMap, map, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
-        return next
-    }
-
-    func _jobs_sdIsCurrentForegroundToken(_ token: Int, for state: UIControl.State) -> Bool {
-        let map = (objc_getAssociatedObject(self, &_JobsSDButtonTokenAOKey.fgTokenMap) as? [UInt: Int]) ?? [:]
-        return map[state.rawValue] == token
-    }
-    // MARK: - Shimmer helpers（loading 占位）
-    func _jobs_startForegroundShimmer(targetSize: CGSize) {
-        self._jobs_startForegroundShimmerOverlay(targetSize: targetSize)
-    }
-
-    func _jobs_stopForegroundShimmer() {
-        self._jobs_stopForegroundShimmerOverlay()
-    }
-
-    func _jobs_startBackgroundShimmer() {
-        self.jobs_startShimmer()
-
-        DispatchQueue.main.async { [weak self] in
-            guard let self else { return }
-
-            // ✅ 关键：把文字层提到最前，避免被 shimmer overlay 盖住
-            if let tl = self.titleLabel { self.bringSubviewToFront(tl) }
-
-            // 你的 subTitle 很可能也是 UILabel（bySubTitle 添加的），一起提到最前
-            for v in self.subviews where v is UILabel {
-                self.bringSubviewToFront(v)
-            }
-
-            // 如果你按钮还有前景图，也可以一并提到最前（可选）
-            if let iv = self.imageView { self.bringSubviewToFront(iv) }
-
-            self.jobs_updateShimmerLayout()
-        }
-    }
-
-    func _jobs_stopBackgroundShimmer() {
-        self.jobs_stopShimmer()
-    }
-
-    func _jobs_sdGuessForegroundTargetSize() -> CGSize {
-        if let s = self.jobs_remoteImageTargetSize, s.width > 1, s.height > 1 { return s }
-        if let iv = self.imageView {
-            let s = iv.bounds.size
-            if s.width > 1, s.height > 1 { return s }
-        }
-        let h = self.bounds.size.height
-        if h > 1 {
-            let side = max(24, h - 16)
-            return CGSize(width: side, height: side)
-        };return CGSize(width: 48, height: 48)
-    }
-
-    // MARK: - Foreground loading placeholder（用于撑开 imageView frame，便于 overlay 精准覆盖）
-    func _jobs_sdLoadingPlaceholderImage(targetPointSize: CGSize, fallback: UIImage?) -> UIImage? {
-        if let fallback { return fallback }
-        return UIImage._jobs_transparentPlaceholder(size: targetPointSize)
-    }
-
-    func _jobs_sdGuessBackgroundTargetSize() -> CGSize {
-        if let s = self.jobs_bgImageTargetSize, s.width > 1, s.height > 1 { return s }
-        let s = self.bounds.size
-        if s.width > 1, s.height > 1 { return s }
-        return CGSize(width: 320, height: 64)
-    }
-
     func _jobs_sdBuildContext(base: [SDWebImageContextOption: Any]?, targetPointSize: CGSize?) -> [SDWebImageContextOption: Any] {
         var ctx = base ?? [:]
         if ctx[.imageScaleFactor] == nil {
@@ -187,83 +100,27 @@ private extension UIButton {
             }
         };return ctx
     }
-    /// ✅ 强制写入“前景图”。
-    ///
-    /// 你现在的现象是：只要配置了 `.sd_placeholderImage(...)`，按钮就一直停在兜底图；
-    /// 把占位注释掉反而能显示网络图。
-    ///
-    /// 本质原因通常是你自己的 `jobsResetBtnImage` 做了“已有 image 就不再覆盖”的保护：
-    /// 先写了占位图 → 后续回调再写网络图被它挡住，于是 UI 永远停在 placeholder。
-    ///
-    /// 这里做一个「先走 jobsReset；如果没生效再强制覆盖」的兜底，保证占位一定能被最终图替换。
-    func _jobs_forceSetForegroundImage(_ image: UIImage?, for state: UIControl.State) {
-        // 1) 先走你现有的统一封装（保证你的配置/布局逻辑不丢）
-        self.jobsResetBtnImage(image, for: state)
-        // 2) 如果 jobsReset 内部做了“已有 image 不覆盖”，这里强制补写
-        if #available(iOS 15.0, *), state == .normal, var cfg = self.configuration {
-            let current = cfg.image
-            if (current !== image) && !(current == nil && image == nil) {
-                cfg.image = image
-                self.configuration = cfg
-            }
-        } else {
-            let current = self.image(for: state)
-            if (current !== image) && !(current == nil && image == nil) {
-                self.setImage(image, for: state)
-            }
-        }
-    }
-    /// ✅ 强制写入“背景图”，逻辑同上。
-    func _jobs_forceSetBackgroundImage(_ image: UIImage?, for state: UIControl.State) {
-        self.jobsResetBtnBgImage(image, for: state)
-
-        if #available(iOS 15.0, *), state == .normal, var cfg = self.configuration {
-            let current = cfg.background.image
-            if (current !== image) && !(current == nil && image == nil) {
-                cfg.background.image = image
-                self.configuration = cfg
-            }
-        } else {
-            let current = self.backgroundImage(for: state)
-            if (current !== image) && !(current == nil && image == nil) {
-                self.setBackgroundImage(image, for: state)
-            }
-        }
-    }
-}
-
-// MARK: - Transparent placeholder (internal)
-private extension UIImage {
-    static func _jobs_transparentPlaceholder(size: CGSize,
-                                            scale: CGFloat = UIScreen.main.scale) -> UIImage {
-        let w = max(1, size.width)
-        let h = max(1, size.height)
-        let format = UIGraphicsImageRendererFormat()
-        format.scale = scale
-        format.opaque = false
-        return UIGraphicsImageRenderer(size: CGSize(width: w, height: h), format: format).image { _ in }
-    }
 }
 
 public extension UIButton {
     // MARK: - 前景图（SDWebImage）
     func _sd_loadImage(for state: UIControl.State) {
         let cfg = _sd_config
-        let token = _jobs_sdNextForegroundToken(for: state)
+        let token = _jobs_nextToken(loader: .sd, channel: .foreground, for: state)
         // ✅ 标记实际使用的框架（给 JobsImageCacheCleaner 用）
         self.jobs_imageLoaderKind = .sdwebimage
         // ✅ 记录：前景 state / url（供 JobsImageCacheCleaner 遍历重下）
         self.jobs_remoteState = state
         // ✅ 目标尺寸：优先你显式设置的 targetSize，否则按 UI 猜一个兜底值（用于 shimmer overlay + thumbnail 下采样）
-        let targetPointSize = cfg.targetSize ?? _jobs_sdGuessForegroundTargetSize()
+        let targetPointSize = cfg.targetSize ?? _jobs_guessForegroundTargetSize()
         self.jobs_remoteImageTargetSize = targetPointSize
-        let loadingPlaceholder = _jobs_sdLoadingPlaceholderImage(targetPointSize: targetPointSize, fallback: cfg.placeholder)
+        let loadingPlaceholder = _jobs_loadingPlaceholderImage(targetPointSize: targetPointSize, fallback: cfg.placeholder)
 
         guard let url = cfg.url else {
             self.jobs_remoteURL = nil
             // URL 解析失败也视为失败：直接落兜底（不需要 shimmer）
             _jobs_runOnMain { btn in
-                guard btn._jobs_sdIsCurrentForegroundToken(token, for: state) else { return }
+                guard btn._jobs_isCurrentToken(token, loader: .sd, channel: .foreground, for: state) else { return }
                 btn._jobs_stopForegroundShimmer()
                 btn._jobs_forceSetForegroundImage(cfg.placeholder, for: state)
             }
@@ -274,7 +131,7 @@ public extension UIButton {
         // ✅ 折中策略：先灌入兜底图（或透明占位）把前景 imageView 撑开 → 再盖 overlay 做 shimmer
         // 这样 overlay 的 frame 可以直接跟随系统最终算出来的 imageView/frame。
         _jobs_runOnMain { btn in
-            guard btn._jobs_sdIsCurrentForegroundToken(token, for: state) else { return }
+            guard btn._jobs_isCurrentToken(token, loader: .sd, channel: .foreground, for: state) else { return }
             btn._jobs_forceSetForegroundImage(loadingPlaceholder, for: state)
             btn.setNeedsLayout()
             btn.layoutIfNeeded()
@@ -299,7 +156,7 @@ public extension UIButton {
         ) { [weak self] img, err, cacheType, imageURL in
             guard let self else { return }
             self._jobs_runOnMain { btn in
-                guard btn._jobs_sdIsCurrentForegroundToken(token, for: state) else { return }
+                guard btn._jobs_isCurrentToken(token, loader: .sd, channel: .foreground, for: state) else { return }
                 let nsErr = err as NSError?
                 let isCancelled = (nsErr?.domain == SDWebImageErrorDomain && nsErr?.code == SDWebImageError.cancelled.rawValue)
                 if isCancelled {
@@ -356,7 +213,7 @@ public extension UIButton {
             };return
         }
         // ✅ 目标尺寸：背景优先显式设置，否则按按钮 bounds 兜底
-        let targetPointSize = cfg.bgTargetSize ?? _jobs_sdGuessBackgroundTargetSize()
+        let targetPointSize = cfg.bgTargetSize ?? _jobs_guessBackgroundTargetSize()
         self.jobs_bgImageTargetSize = targetPointSize
         // 取消在途任务（同一 state）
         self.sd_cancelBackgroundImageLoad(for: state)

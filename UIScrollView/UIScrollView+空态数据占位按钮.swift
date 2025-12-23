@@ -12,7 +12,6 @@ import UIKit
 #endif
 
 import ObjectiveC
-import ObjectiveC.runtime
 // MARK: - UIScrollView层：统一的占位能力@按钮
 #if canImport(SnapKit)
 import SnapKit
@@ -21,8 +20,8 @@ public enum JobsEmptyAuto {
         /// 全局默认按钮提供器（你可在 App 任何位置重写）
         public static var defaultProvider: () -> UIButton = {
             UIButton(type: .system)
-                .byTitle("暂无数据", for: .normal)
-                .bySubTitle("下拉刷新或点我试试", for: .normal)
+                .byTitle("暂无数据".tr, for: .normal)
+                .bySubTitle("下拉刷新或点我试试".tr, for: .normal)
                 .byTitleFont(.systemFont(ofSize: 18, weight: .semibold))
                 .bySubTitleFont(.systemFont(ofSize: 13))
                 .byTitleColor(.label, for: .normal)
@@ -108,8 +107,7 @@ public extension UIScrollView {
         if let btn = jobs_emptyButton {
             btn.removeFromSuperview()
             objc_setAssociatedObject(self, &_jobsEmptyBtnKey, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
-        }
-        return self
+        };return self
     }
     /// 链式：清除“本视图”的局部 Provider（回退到全局默认）
     @discardableResult

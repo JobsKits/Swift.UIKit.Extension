@@ -127,7 +127,10 @@ public extension UIButton {
                                  kind,
                                  .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
 
-        let cfg = JobsTimerConfig(interval: interval, repeats: true, tolerance: 0.01, queue: .main)
+        let cfg = JobsTimerConfig(interval: interval,
+                                  repeats: true,
+                                  tolerance: 0.01,
+                                  queue: .main)
         let core = JobsTimerFactory.make(kind: kind, config: cfg) { [weak self] in
             guard let self else { return }
             guard var mode = objc_getAssociatedObject(self, &_timerModeKey) as? _TimerMode else { return }

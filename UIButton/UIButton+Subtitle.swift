@@ -59,21 +59,17 @@ public extension UIButton {
             // 先把外部原有的 handler 执行（不抢控制权）
             existing?(btn)
             guard let self = self else { return }
-
             // 当前状态
             let st = btn.state
-
             // 拿到（或创建）当前配置
             var cfg = btn.configuration ?? .plain()
             cfg.titleAlignment = .center
-
             // ---------- 主标题：防丢 ----------
             if cfg.title == nil,
                let t = btn.title(for: .normal),
                !t.isEmpty {
                 cfg.title = t
             }
-
             // ---------- 副标题：从我们保存的包读取并应用 ----------
             // _subDict_noAttr 是你已有的 AO 字典：[UInt : _JobsSubPackNoAttr]
             let pack = self._subDict_noAttr[st.rawValue] ?? self._subDict_noAttr[UIControl.State.normal.rawValue]
@@ -88,7 +84,6 @@ public extension UIButton {
                 if let c { a.foregroundColor = c }
                 return a
             }
-
             // ---------- 背景图：优先“粘住”的，再兜底 legacy ----------
             // jobs_cfgBgImage 是你在 jobsResetBtnBgImage 中同步/粘住的最终图
             var bg = cfg.background
@@ -107,7 +102,6 @@ public extension UIButton {
                 }
             }
             cfg.background = bg
-
             // ---------- 提交 ----------
             btn.configuration = cfg
             // 不要在这里再 setNeedsUpdateConfiguration()，避免循环重建
@@ -139,14 +133,14 @@ public extension UIButton {
         };return self
     }
     @discardableResult
-    func bySubTitleFont(_ font: UIFont, for state: UIControl.State = .normal) -> Self {
+    func bySubTitleFont(_ font: UIFont?, for state: UIControl.State = .normal) -> Self {
         if #available(iOS 15.0, *) {
             var p = _subPack_noAttr(for: state); p.font = font; _setSubPack_noAttr(p, for: state)
             _applySubtitleToConfigurationNow(targetState: state)   // ⬅️
         };return self
     }
     @discardableResult
-    func bySubTitleColor(_ color: UIColor, for state: UIControl.State = .normal) -> Self {
+    func bySubTitleColor(_ color: UIColor?, for state: UIControl.State = .normal) -> Self {
         if #available(iOS 15.0, *) {
             var p = _subPack_noAttr(for: state); p.color = color; _setSubPack_noAttr(p, for: state)
             _applySubtitleToConfigurationNow(targetState: state)   // ⬅️

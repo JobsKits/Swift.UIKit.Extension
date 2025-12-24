@@ -45,7 +45,7 @@ public enum JobsEmptyAuto {
                  #selector(UICollectionView.performBatchUpdates(_:completion:)),
                  #selector(UICollectionView.jobs_swizzled_performBatchUpdates(_:completion:)))
     }()
-    public static func enable() { _JobsEmptySwizzle.ensureOnce() }  // 幂等
+    public static func enable() { _ = once }   // 触发 once 里对 UITableView/UICollectionView 的 swizzle
     private static func _swizzle(_ cls: AnyClass, _ original: Selector, _ swizzled: Selector) {
         guard let m1 = class_getInstanceMethod(cls, original),
               let m2 = class_getInstanceMethod(cls, swizzled) else { return }
@@ -83,13 +83,9 @@ private enum _JobsEmptySwizzle {
                  #selector(UICollectionView.jobs_swizzled_performBatchUpdates(_:completion:)))
         }
 
-        // （如你也 swizzle 了 UITableView，在这里同理放进去；不会重复）
-        // exch(UITableView.self, #selector(UITableView.reloadData), #selector(UITableView.jobs_swizzled_reloadData))
-        // if #available(iOS 13.0, *) {
-        //     exch(UITableView.self,
-        //          #selector(UITableView.performBatchUpdates(_:completion:)),
-        //          #selector(UITableView.jobs_swizzled_performBatchUpdates(_:completion:)))
-        // }
+        exch(UITableView.self,
+             #selector(UITableView.reloadData),
+             #selector(UITableView.jobs_swizzled_reloadData))
     }
 }
 private var _jobsEmptyBtnKey: UInt8       = 0

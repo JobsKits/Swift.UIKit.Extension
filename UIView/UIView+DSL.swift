@@ -70,8 +70,8 @@ extension UIView {
     }
     /// 统一圆角：按钮走 UIButton.Configuration 方案，其他视图保持原始 layer 逻辑
     @discardableResult
-    func byCornerRadius(_ radius: CGFloat) -> Self {
-        let r = max(0, radius)
+    func byCornerRadius(_ radius: CGFloat?) -> Self {
+        let r = max(0, radius ?? 0.0)
         // === 按钮：套用 byBtnCornerRadius 的实现（maskedCorners=nil, isContinuous=true） ===
         if let btn = self as? UIButton {
             if #available(iOS 15.0, *), var cfg = btn.configuration {
@@ -102,8 +102,8 @@ extension UIView {
     }
 
     @discardableResult
-    func byMasksToBounds(_ masksToBounds: Bool) -> Self {
-        layer.masksToBounds = masksToBounds
+    func byMasksToBounds(_ masksToBounds: Bool?) -> Self {
+        layer.masksToBounds = masksToBounds ?? false
         return self
     }
 
@@ -477,8 +477,8 @@ extension UIView {
     }
 
     @discardableResult
-    func byUserInteractionEnabled(_ enabled: Bool) -> Self {
-        isUserInteractionEnabled = enabled
+    func byUserInteractionEnabled(_ enabled: Bool?) -> Self {
+        isUserInteractionEnabled = enabled ?? false
         return self
     }
     /// 手势封装：添加手势以后返回这个手势本身@常用于链式调用

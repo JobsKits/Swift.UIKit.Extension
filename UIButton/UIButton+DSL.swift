@@ -11,6 +11,8 @@ import AppKit
 import UIKit
 #endif
 // MARK: - 基础链式
+public var _jobsTitleFontDictKey: UInt8 = 0
+public var _jobsTitleFontHandlerInstalledKey: UInt8 = 0
 public extension UIButton {
     @discardableResult
     func byTitle(_ title: String?, for state: UIControl.State = .normal) -> Self {
@@ -29,7 +31,7 @@ public extension UIButton {
     }
 
     @discardableResult
-    func byTitleFont(_ font: UIFont) -> Self {
+    func byTitleFont(_ font: UIFont?) -> Self {
         self.titleLabel?.font = font
         if #available(iOS 15.0, *), self.configuration != nil {
             var cfg = self.configuration ?? .filled()
@@ -44,7 +46,30 @@ public extension UIButton {
     }
 
     @discardableResult
-    func byTitleColor(_ color: UIColor, for state: UIControl.State = .normal) -> Self {
+    func byTitleFont(_ font: UIFont?, for state: UIControl.State = .normal) -> Self {
+        // legacy：至少 normal 立刻生效
+        if state == .normal { self.titleLabel?.font = font }
+        if #available(iOS 15.0, *), self.configuration != nil {
+            _ensureTitleFontHandlerInstalled()
+            var d = _titleFontDict
+            d[state.rawValue] = font
+            _titleFontDict = d
+            setNeedsUpdateConfiguration()
+            updateConfiguration()
+            automaticallyUpdatesConfiguration = true
+            return self
+        }
+        // iOS14 及以下：尽量用 attributedTitle 做 state 区分（前提：先 setTitle 再调这个）
+        let t = self.title(for: state) ?? self.attributedTitle(for: state)?.string ?? ""
+        if !t.isEmpty {
+            var attrs: [NSAttributedString.Key: Any] = [.font: font ?? UIFont.systemFont(ofSize: 15)]
+            if let c = self.titleColor(for: state) { attrs[.foregroundColor] = c }
+            self.setAttributedTitle(NSAttributedString(string: t, attributes: attrs), for: state)
+        };return self
+    }
+
+    @discardableResult
+    func byTitleColor(_ color: UIColor?, for state: UIControl.State = .normal) -> Self {
         self.setTitleColor(color, for: state)
         if #available(iOS 15.0, *), var cfg = self.configuration {
             if state == .normal {
@@ -120,6 +145,47 @@ public extension UIButton {
         return self
     }
 }
+
+private extension UIButton {
+    // state -> UIFont
+    var _titleFontDict: [UInt: UIFont] {
+        get { (objc_getAssociatedObject(self, &_jobsTitleFontDictKey) as? [UInt: UIFont]) ?? [:] }
+        set { objc_setAssociatedObject(self, &_jobsTitleFontDictKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC) }
+    }
+
+    @available(iOS 15.0, *)
+    func _ensureTitleFontHandlerInstalled() {
+        if (objc_getAssociatedObject(self, &_jobsTitleFontHandlerInstalledKey) as? Bool) == true { return }
+        objc_setAssociatedObject(self, &_jobsTitleFontHandlerInstalledKey, true, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+
+        let existing = self.configurationUpdateHandler
+        self.automaticallyUpdatesConfiguration = true
+
+        self.configurationUpdateHandler = { [weak self] btn in
+            existing?(btn)
+            guard let self else { return }
+
+            let st = btn.state
+            var cfg = btn.configuration ?? .plain()
+            // 主标题防丢（跟你 subtitle 那套一致）
+            if cfg.title == nil,
+               let t = btn.title(for: .normal),
+               !t.isEmpty {
+                cfg.title = t
+            }
+            // 取 state 对应字体，没找到就回退 normal
+            let font = self._titleFontDict[st.rawValue] ?? self._titleFontDict[UIControl.State.normal.rawValue]
+            if let font {
+                cfg.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
+                    var a = incoming
+                    a.font = font
+                    return a
+                }
+            }
+            btn.configuration = cfg
+        }
+    }
+}
 // MARK: - 进阶：按 state 的链式代理
 public extension UIButton {
     final class StateProxy {
@@ -179,7 +245,7 @@ public extension UIButton {
 // MARK: - 布局 / 外观
 public extension UIButton {
     @discardableResult
-    func byBackgroundColor(_ color: UIColor, for state: UIControl.State = .normal) -> Self {
+    func byBackgroundColor(_ color: UIColor?, for state: UIControl.State = .normal) -> Self {
         if #available(iOS 15.0, *), state == .normal {
             var cfg = self.configuration ?? .filled()
             cfg.baseBackgroundColor = color
@@ -191,7 +257,7 @@ public extension UIButton {
             self.configuration = cfg
             byUpdateConfig()
         } else {
-            self.setBgCor(color, forState: state)
+            self.setBgCor(color ?? .white, forState: state)
         };return self
     }
 
@@ -223,17 +289,18 @@ public extension UIButton {
     }
 
     @discardableResult
-    func byContentEdgeInsets(_ insets: UIEdgeInsets) -> Self {
+    func byContentEdgeInsets(_ insets: UIEdgeInsets?) -> Self {
+        let inset = insets ?? (UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 0))
         if #available(iOS 15.0, *) {
             var cfg = configuration ?? .filled()
-            cfg.contentInsets = NSDirectionalEdgeInsets(top: insets.top,
-                                                        leading: insets.left,
-                                                        bottom: insets.bottom,
-                                                        trailing: insets.right)
+            cfg.contentInsets = NSDirectionalEdgeInsets(top: inset.top,
+                                                        leading: inset.left,
+                                                        bottom: inset.bottom,
+                                                        trailing: inset.right)
             configuration = cfg
             byUpdateConfig()
         } else {
-            self.contentEdgeInsets = insets
+            self.contentEdgeInsets = inset
         };return self
     }
 
@@ -291,11 +358,13 @@ public extension UIButton {
     }
     /// 图文位置关系
     @discardableResult
-    func byImagePlacement(_ placement: NSDirectionalRectEdge, padding: CGFloat = 8) -> Self {
+    func byImagePlacement(_ placement: NSDirectionalRectEdge?, padding: CGFloat?) -> Self {
+        let p = placement ?? .top
+        let pad = padding ?? 8.0
         if #available(iOS 15.0, *) {
             var cfg = configuration ?? .filled()
-            cfg.imagePlacement = placement
-            cfg.imagePadding = padding
+            cfg.imagePlacement = p
+            cfg.imagePadding = pad
             configuration = cfg
             byUpdateConfig()
         } else {
@@ -303,7 +372,7 @@ public extension UIButton {
             case .leading:  semanticContentAttribute = .forceLeftToRight
             case .trailing: semanticContentAttribute = .forceRightToLeft
             case .top, .bottom:
-                let inset = padding / 2
+                let inset = pad / 2
                 contentEdgeInsets = UIEdgeInsets(top: inset,
                                                  left: inset,
                                                  bottom: inset,
@@ -311,6 +380,11 @@ public extension UIButton {
             default: break
             }
         };return self
+    }
+
+    @discardableResult
+    func byImagePlacement(_ placement: NSDirectionalRectEdge) -> Self {
+        byImagePlacement(placement, padding: 8.0)
     }
 
     @available(iOS 15.0, *)

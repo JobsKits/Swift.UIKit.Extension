@@ -13,11 +13,11 @@ import UIKit
 public extension UIControl {
     // MARK: - 基础状态
     @discardableResult
-    func byEnabled(_ on: Bool) -> Self { self.isEnabled = on; return self }
+    func byEnabled(_ on: Bool?) -> Self { self.isEnabled = on ?? false; return self }
     @discardableResult
-    func bySelected(_ on: Bool) -> Self { self.isSelected = on; return self }
+    func bySelected(_ on: Bool?) -> Self { self.isSelected = on ?? false; return self }
     @discardableResult
-    func byHighlighted(_ on: Bool) -> Self { self.isHighlighted = on; return self }
+    func byHighlighted(_ on: Bool?) -> Self { self.isHighlighted = on ?? false; return self }
     // MARK: - 内容对齐（你关心的 contentHorizontalAlignment / contentVerticalAlignment）
     /// ✅ 单独设置 contentHorizontalAlignment
     @discardableResult

@@ -335,3 +335,87 @@ extension UIScrollView {
         return self
     }
 }
+/// 初始位置（同步滚动条）
+public extension UIScrollView {
+    // MARK: - contentInset（内部同步滚动条insets）
+    @discardableResult
+    func byContentInsetTop(_ v: CGFloat) -> Self {
+        contentInset.top = v
+        byIndicatorInsetTop(v)
+        return self
+    }
+
+    @discardableResult
+    func byContentInsetLeft(_ v: CGFloat) -> Self {
+        contentInset.left = v
+        byIndicatorInsetLeft(v)
+        return self
+    }
+
+    @discardableResult
+    func byContentInsetBottom(_ v: CGFloat) -> Self {
+        contentInset.bottom = v
+        byIndicatorInsetBottom(v)
+        return self
+    }
+
+    @discardableResult
+    func byContentInsetRight(_ v: CGFloat) -> Self {
+        contentInset.right = v
+        byIndicatorInsetRight(v)
+        return self
+    }
+    // MARK: - scrollIndicatorInsets（单独暴露：iOS13+兼容）
+    /// 顶部滚动条inset（iOS13+ 用 verticalScrollIndicatorInsets，避免 scrollIndicatorInsets getter 的废弃警告）
+    @discardableResult
+    func byIndicatorInsetTop(_ v: CGFloat) -> Self {
+        if #available(iOS 13.0, *) {
+            var inset = verticalScrollIndicatorInsets
+            inset.top = v
+            verticalScrollIndicatorInsets = inset
+        } else {
+            var inset = scrollIndicatorInsets
+            inset.top = v
+            scrollIndicatorInsets = inset
+        };return self
+    }
+    /// 左侧滚动条inset（iOS13+ 用 horizontalScrollIndicatorInsets）
+    @discardableResult
+    func byIndicatorInsetLeft(_ v: CGFloat) -> Self {
+        if #available(iOS 13.0, *) {
+            var inset = horizontalScrollIndicatorInsets
+            inset.left = v
+            horizontalScrollIndicatorInsets = inset
+        } else {
+            var inset = scrollIndicatorInsets
+            inset.left = v
+            scrollIndicatorInsets = inset
+        };return self
+    }
+    /// 底部滚动条inset（iOS13+ 用 verticalScrollIndicatorInsets）
+    @discardableResult
+    func byIndicatorInsetBottom(_ v: CGFloat) -> Self {
+        if #available(iOS 13.0, *) {
+            var inset = verticalScrollIndicatorInsets
+            inset.bottom = v
+            verticalScrollIndicatorInsets = inset
+        } else {
+            var inset = scrollIndicatorInsets
+            inset.bottom = v
+            scrollIndicatorInsets = inset
+        };return self
+    }
+    /// 右侧滚动条inset（iOS13+ 用 horizontalScrollIndicatorInsets）
+    @discardableResult
+    func byIndicatorInsetRight(_ v: CGFloat) -> Self {
+        if #available(iOS 13.0, *) {
+            var inset = horizontalScrollIndicatorInsets
+            inset.right = v
+            horizontalScrollIndicatorInsets = inset
+        } else {
+            var inset = scrollIndicatorInsets
+            inset.right = v
+            scrollIndicatorInsets = inset
+        };return self
+    }
+}

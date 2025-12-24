@@ -158,7 +158,7 @@ extension UITableView {
         self.fillerRowHeight = h
         return self
     }
-    /// iOS 15.0+ section header 顶部间距
+    /// iOS 15.0+ （grouped / insetGrouped）专用 section header 顶部间距
     @available(iOS 15.0, *)
     @discardableResult
     public func bySectionHeaderTopPadding(_ padding: CGFloat) -> Self {
